@@ -17,6 +17,7 @@ static const struct word custom_dict[] = {
 	MKWORD(custom_dict,		__COUNTER__,	"id\"",	do_id_quote),
 	MKWORD(custom_dict,		__COUNTER__,	">>long",	do_to_long),
 	MKWORD(custom_dict,		__COUNTER__,	">>int",	do_to_int),
+	MKWORD(custom_dict,		__COUNTER__,	">struct",	do_to_struct),
 	MKWORD(custom_dict,		__COUNTER__,	"define-variables",	do_define_variables),
 
 }, * custom_dict_start = custom_dict + __COUNTER__;

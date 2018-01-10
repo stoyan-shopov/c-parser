@@ -4,6 +4,7 @@
 void do_id_quote(void);
 void do_to_long(void);
 void do_to_int(void);
+void do_to_struct(void);
 void do_define_variables(void);
 
 #endif // SFEXT_H
