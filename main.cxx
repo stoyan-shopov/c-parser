@@ -145,7 +145,7 @@ struct { int x; } s;
 struct tag { int x; };
 struct tag { int x; } s;
 struct tag;
-
+struct tag_ext { struct tag_inner { struct tag_innermost; }; } ********** s[][10][20][30];
 
 
 id" tag" >struct declaration-end
@@ -164,6 +164,9 @@ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }agg
 
 struct tag { int x; } s;
 id" s" aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end id" tag" >struct define-variables declaration-end
+
+struct tag_ext { struct tag_inner { struct tag_innermost; }; } ********** s[][10][20][30];
+>pointer >pointer >pointer >pointer >pointer >pointer >pointer >pointer >pointer >pointer >array{ -2 }array-end >array{ -2 }array-end >array{ -2 }array-end >array[] id" s" aggregate{ aggregate{ id" tag_innermost" >struct }aggregate-end id" tag_inner" >struct }aggregate-end id" tag_ext" >struct define-variables declaration-end
 	  */
 	auto t = Util::pop();
 	if (t->asIdentifier())
