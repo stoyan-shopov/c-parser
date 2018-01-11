@@ -66,6 +66,7 @@ struct CStackNode
 		IDENTIFIER,
 		DATA_TYPE,
 		AGGREGATE_BEGIN,
+		AGGREGATE,
 		STRUCT_DECLARATOR_LIST_BEGIN,
 		CSTACK_TAG_COUNT,
 	};
@@ -75,6 +76,7 @@ private:
 public:
 	virtual CIdentifier * asIdentifier(void) { return 0; }
 	virtual CDataType * asDataType(void) { return 0; }
+	void setTag(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
 	enum CSTACK_NODE_ENUM tag(void) { return _tag; }
 	const char * tagName(void) { return (_tag < CSTACK_TAG_COUNT) ? tagNames[_tag] : "invalid tag value"; }
 	CStackNode(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
@@ -85,6 +87,7 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::IDENTIFIER]	=	"identifier",
 	[CStackNode::DATA_TYPE]		=	"data type",
 	[CStackNode::AGGREGATE_BEGIN]	=	"aggregate begin",
+	[CStackNode::AGGREGATE]		=	"aggregate",
 	[CStackNode::STRUCT_DECLARATOR_LIST_BEGIN]	=	"struct declarator list begin",
 };
 
@@ -120,7 +123,7 @@ struct CDataType : CStackNode
 currentDataType
 ;
 
-static QVector<CDataType> dataTypes;
+static QVector<QSharedPointer<CStackNode>> dataTypes;
 static QMap<QString, QSharedPointer<CDataType>> structTags;
 
 static QStack<QSharedPointer<CStackNode>> parseStack;
@@ -165,7 +168,19 @@ public:
 		}
 		qDebug() << "----------------------";
 	}
-	static void dump(const CStackNode & n){}
+	static void dump(CStackNode & n)
+	{
+		if (auto d = n.asDataType())
+		{
+			qDebug() << "data type:" << d->name;
+			for (auto i : d->members)
+				dump(* i);
+		}
+		else if (auto id = n.asIdentifier())
+		{
+			qDebug() << "id:" << id->name;
+		}
+	}
 };
 
 extern "C"
@@ -230,13 +245,47 @@ struct tag_ext { struct tag_inner { struct tag_innermost; }; } ********** s[][10
 struct tag_innermost { struct x ****** y; };
 aggregate{ id" x" >struct struct-declarator-list{ id" y" >pointer >pointer >pointer >pointer >pointer >pointer }struct-declarator-list-end }aggregate-end id" tag_innermost" >struct declaration-end
 	  */
+
+auto & t = Util::top().operator *();
+
+	if (t.asIdentifier())
+	{
+		auto x = Util::pop();
+		auto id = x.operator *().asIdentifier();
+		if (!parseStack.isEmpty())
+		{
+			if (Util::top().operator *().tag() == CStackNode::AGGREGATE)
+			{
+				auto x = Util::pop();
+				auto s = x.operator ->()->asDataType();
+				s->isStruct = true;
+				s->name = id->name;
+				dataTypes.append(x);
+				Util::dump(* s);
+			}
+			else
+				Util::panic("");
+		}
+	}
+	else
+		Util::panic("");
+	Util::dump();
+	do_abort();
 }
 
 void do_aggregate_begin(void){ parseStack.push(QSharedPointer<CDataType>(new CDataType(CDataType::AGGREGATE_BEGIN)));}
+void do_aggregate_end(void)
+{
+auto & s = Util::top().operator *();
+
+	if (s.tag() != CStackNode::AGGREGATE_BEGIN)
+		Util::panic("bad stack");
+	s.setTag(CStackNode::AGGREGATE);
+}
+
 void do_struct_declarator_list_begin(void){ parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN))); }
 void do_struct_declarator_list_end(void)
 {
-	Util::dump();
 auto s = Util::locate(CStackNode::AGGREGATE_BEGIN)->operator ->()->asDataType();
 auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN), i = l + 1;
 
@@ -250,8 +299,8 @@ auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN), i = l + 1;
 	int x = l - parseStack.begin();
 	while (x != parseStack.size())
 		parseStack.pop();
-	Util::dump();
-	do_abort();
+	if (Util::top()->asDataType())
+		parseStack.pop();
 }
 
 /* extern "C" */}
