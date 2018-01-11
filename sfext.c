@@ -19,6 +19,9 @@ static const struct word custom_dict[] = {
 	MKWORD(custom_dict,		__COUNTER__,	">>int",	do_to_int),
 	MKWORD(custom_dict,		__COUNTER__,	">struct",	do_to_struct),
 	MKWORD(custom_dict,		__COUNTER__,	"define-variables",	do_define_variables),
+	MKWORD(custom_dict,		__COUNTER__,	"aggregate{",	do_aggregate_begin),
+	MKWORD(custom_dict,		__COUNTER__,	"struct-declarator-list{",	do_struct_declarator_list_begin),
+	MKWORD(custom_dict,		__COUNTER__,	"}struct-declarator-list-end",	do_struct_declarator_list_end),
 
 }, * custom_dict_start = custom_dict + __COUNTER__;
 
