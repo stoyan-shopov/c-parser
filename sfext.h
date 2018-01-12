@@ -11,5 +11,8 @@ void do_aggregate_end(void);
 void do_struct_declarator_list_begin(void);
 void do_struct_declarator_list_end(void);
 void do_declaration_end(void);
+void do_to_pointer(void);
+void do_array_end(void);
+void empty(void);
 
 #endif // SFEXT_H

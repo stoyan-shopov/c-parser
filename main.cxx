@@ -43,41 +43,119 @@ struct str
 }
 id" s" aggregate{ >>int struct-declarator-list{ id" x" id" y" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id" a" id" b" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id" xxx" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct struct-declarator-list{ >pointer >pointer >pointer >array{ -2 }array-end >array{ -2 }array-end >array{ -2 }array-end >array[] id" arr" }struct-declarator-list-end }aggregate-end id" str" >struct define-variables declaration-end
 
+
+int ** x;
+int ** y[];
+int (** z)[];
+int *(* a)[], b, c;
+
+
+struct str
+{
+	struct s *(*(* p)[10][10])[12], z;
+	struct { int x, y, z; } **(*x)[10], d;
+};
+
+struct str1
+{
+	struct s *(*(* p)[10][10])[12], z;
+	struct { int x, y, z; } **(*x)[10], d;
+} ***(**p[5])[10];
+
+
+id" x" >pointer >pointer >>int define-variables declaration-end
+id" y" >array[] >pointer >pointer >>int define-variables declaration-end
+id" z" >pointer >pointer >array[] >>int define-variables declaration-end
+id" a" >pointer >array[] >pointer id" b" id" c" >>int define-variables declaration-end
+
 */
 
 #endif
 
+#define ENABLE_TEST_CASES	0
+
 
 static const char * declarations =
+/*
+struct s { struct {int x;};};
+
+struct str
+{
+	struct s *(*(* p)[10][10])[12], z;
+	struct { int x, y, z; } **(*x)[10], d;
+};*/
 #if 1
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end id\" s\" >struct declaration-end"
+" "
+"aggregate{ id\" s\" >struct struct-declarator-list{ id\" p\" >pointer >array{ -2 }array-end >array{ -2 }array-end >pointer >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id\" x\" id\" y\" id\" z\" }struct-declarator-list-end }aggregate-end >struct struct-declarator-list{ id\" x\" >pointer >array{ -2 }array-end >pointer >pointer id\" d\" }struct-declarator-list-end }aggregate-end id\" str\" >struct declaration-end"
+" "
+#endif
+
+#if ENABLE_TEST_CASES
 /* struct s1; */
 "id\" s1\" >struct declaration-end"
 " "
 #endif
-#if 1
+#if ENABLE_TEST_CASES
 /* struct { struct s2 { int x; }; }; */
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s2\" >struct }aggregate-end >struct declaration-end"
 " "
 #endif
-#if 1
+#if ENABLE_TEST_CASES
 /* struct { struct s3 { int x; }; } str;*/
 "id\" str\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s3\" >struct }aggregate-end >struct define-variables declaration-end"
 " "
 #endif
-#if 1
+#if ENABLE_TEST_CASES
+/* same as above - test duplicate detection */
 /* struct { struct s3 { int x; }; } str; */
 "id\" str\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s3\" >struct }aggregate-end >struct define-variables declaration-end"
 " "
 #endif
-#if 1
+#if ENABLE_TEST_CASES
 /* struct s1 { int x; }; */
 "aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s1\" >struct declaration-end"
 " "
 #endif
+
+#if ENABLE_TEST_CASES
+/* struct s1 s; */
+"id\" s\" id\" s1\" >struct define-variables declaration-end"
+" "
+#endif
+
+#if ENABLE_TEST_CASES
+/* struct { struct { int x; }; }; */
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct declaration-end"
+" "
+#endif
+
+#if ENABLE_TEST_CASES
+/* struct { struct { int x; }; } s1; */
+"id\" s1\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct define-variables declaration-end"
+" "
+#endif
+
+#if ENABLE_TEST_CASES
+/* struct s4 { struct { int x; }; }; */
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end id\" s4\" >struct declaration-end"
+" "
+#endif
+
+#if ENABLE_TEST_CASES
+/* struct s5 { struct s6 { int x; }; } s2; */
+"id\" s2\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s6\" >struct }aggregate-end id\" s5\" >struct define-variables declaration-end"
+" "
+#endif
+
 ;
 
 struct CIdentifier;
 struct CDataType;
+
+struct CPointerModifier;
+struct CArrayModifier;
+
 
 struct CStackNode
 {
@@ -89,6 +167,8 @@ struct CStackNode
 		AGGREGATE_BEGIN,
 		AGGREGATE,
 		STRUCT_DECLARATOR_LIST_BEGIN,
+		POINTER_MODIFIER,
+		ARRAY_MODIFIER,
 		CSTACK_TAG_COUNT,
 	};
 private:
@@ -97,10 +177,14 @@ private:
 public:
 	virtual CIdentifier * asIdentifier(void) { return 0; }
 	virtual CDataType * asDataType(void) { return 0; }
+	virtual struct CPointerModifier * asPointer(void) { return 0; }
+	virtual struct CArrayModifier * asArray(void) { return 0; }
+
 	void setTag(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
 	enum CSTACK_NODE_ENUM tag(void) { return _tag; }
 	const char * tagName(void) { return (_tag < CSTACK_TAG_COUNT) ? tagNames[_tag] : "invalid tag value"; }
 	CStackNode(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
+	virtual ~CStackNode(){}
 };
 const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 {
@@ -110,6 +194,21 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::AGGREGATE_BEGIN]	=	"aggregate begin",
 	[CStackNode::AGGREGATE]		=	"aggregate",
 	[CStackNode::STRUCT_DECLARATOR_LIST_BEGIN]	=	"struct declarator list begin",
+	[CStackNode::POINTER_MODIFIER]	=	"pointer*",
+	[CStackNode::ARRAY_MODIFIER]	=	"array[]",
+};
+
+struct CPointerModifier : public CStackNode
+{
+	CPointerModifier(void) : CStackNode(POINTER_MODIFIER) {}
+	virtual struct CPointerModifier * asPointer(void) { return this; }
+};
+struct CArrayModifier : public CStackNode
+{
+	unsigned dimensionSize;
+	virtual struct CArrayModifier * asArray(void) { return this; }
+	CArrayModifier(void) : CStackNode(ARRAY_MODIFIER) {}
+	CArrayModifier(unsigned dimensionSize) : CStackNode(ARRAY_MODIFIER) { this->dimensionSize = dimensionSize; }
 };
 
 struct CIdentifier : CStackNode
@@ -140,19 +239,27 @@ struct CDataType : CStackNode
 	/* data details for 'struct' and 'union' aggregate types */
 	QVector<QSharedPointer<CStackNode>>	members;
 	QString					name;
-}
-currentDataType
-;
+};
+
+struct Variable
+{
+	QVector<CStackNode> typeModifiers;
+	QString name;
+	QSharedPointer<CStackNode>	type;
+	Variable(const QString & name, QSharedPointer<CStackNode> type) { this->name = name, this->type = type; }
+	Variable(void){}
+};
 
 static QVector<QSharedPointer<CStackNode>> dataTypes;
 static QMap<QString, QSharedPointer<CStackNode>> structTags;
+static QMap<QString, Variable> fileScopeVariables;
 
 static QStack<QSharedPointer<CStackNode>> parseStack;
 
 class Util
 {
 public:
-	static void panic(std::string message = "fatal error") { dump(); qDebug() << "fatal error: " << QString::fromStdString(message); * (int *) 0 = 0; }
+	static void panic(QString message = "fatal error") { dump(); qDebug() << "fatal error: " << message; * (int *) 0 = 0; }
 	static QSharedPointer<CStackNode> top(void) { if (!parseStack.size()) panic("stack empty"); return parseStack.top(); }
 	static QSharedPointer<CStackNode> pop(void) { if (!parseStack.size()) panic("stack empty"); return parseStack.pop(); }
 	static void drop(void) { pop(); }
@@ -210,6 +317,7 @@ public:
 		}
 	}
 	static void dumpTypes(void) { qDebug() << "data types\n"; for (auto & t : structTags) dump(t.operator *()); }
+	static void dumpVariables(void) { qDebug() << "file scope variables\n"; for (auto & v : fileScopeVariables) qDebug() << v.name; }
 };
 
 extern "C"
@@ -226,8 +334,16 @@ void do_define_variables(void)
 	if (!t->asDataType())
 		Util::panic("top of stack not a data type");
 	do
-		if (!Util::pop().operator *().asIdentifier())
+	{
+		auto d = Util::pop();
+		auto id = d.operator *() .asIdentifier();
+		if (!id)
 			Util::panic();
+		if (fileScopeVariables.contains(id->name))
+			qDebug() << "ERROR: file scope variable '" + id->name + "' redefined";
+		else
+			fileScopeVariables[id->name] = Variable(id->name, t);
+	}
 	while (!parseStack.isEmpty());
 }
 void do_declaration_end(void)
@@ -235,12 +351,10 @@ void do_declaration_end(void)
 	if (parseStack.isEmpty())
 		return;
 	auto t = Util::pop();
+	if (!parseStack.isEmpty())
+		Util::panic();
 	if (!t->asDataType())
 		Util::panic("top of stack not a data type");
-	else
-	{
-		CDataType * x = t->asDataType();
-	}
 }
 void do_to_struct(void)
 {
@@ -276,7 +390,6 @@ struct s5 { struct s6 { int x; }; } s2;
 /*struct { struct s2 { int x; }; };*/
 auto & t = Util::top().operator *();
 
-	Util::dump();
 	if (t.asIdentifier())
 	{
 		auto x = Util::pop();
@@ -296,7 +409,13 @@ auto & t = Util::top().operator *();
 					structTags[s->name] = Util::top();
 			}
 			else
-				Util::panic();
+			{
+				/* handle struct/union reference to an already defined struct/union */
+				if (!structTags.contains(id->name))
+					Util::panic(QString("struct/union '") + id->name + "' not found");
+				else
+					parseStack.push(structTags[id->name]);
+			}
 		}
 		else
 			qDebug() << "struct declaration detected, no effect";
@@ -305,7 +424,6 @@ auto & t = Util::top().operator *();
 	{
 		if (parseStack.size() == 1)
 		{
-			Util::dump(t);
 			Util::drop();
 			qDebug() << "warning: unnamed struct/union that defines no instances";
 		}
@@ -319,7 +437,6 @@ void do_aggregate_end(void)
 {
 auto & s = Util::top().operator *();
 
-	Util::dump();
 	if (s.tag() == CStackNode::AGGREGATE_BEGIN)
 	{
 		s.setTag(CStackNode::AGGREGATE);
@@ -344,6 +461,7 @@ void do_struct_declarator_list_end(void)
 auto s = Util::locate(CStackNode::AGGREGATE_BEGIN)->operator ->()->asDataType();
 auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN), i = l + 1;
 
+	Util::dump();
 	while (i != parseStack.end())
 	{
 		if (i->operator *().asIdentifier())
@@ -358,6 +476,19 @@ auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN), i = l + 1;
 		parseStack.pop();
 }
 
+void do_to_pointer(void)
+{
+	Util::dump();
+	parseStack.push(QSharedPointer<CStackNode>(new CPointerModifier()));
+}
+void do_array_end(void)
+{
+	Util::dump();
+	parseStack.push(QSharedPointer<CStackNode>(new CArrayModifier(sf_pop())));
+}
+
+void empty(void){}
+
 /* extern "C" */}
 
 int main(int argc, char *argv[])
@@ -371,6 +502,7 @@ int main(int argc, char *argv[])
 	sf_eval(".( parsing done)cr .s cr");
 
 	Util::dumpTypes();
+	Util::dumpVariables();
 
 	return a.exec();
 }
