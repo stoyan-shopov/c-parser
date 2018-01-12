@@ -50,12 +50,29 @@ id" s" aggregate{ >>int struct-declarator-list{ id" x" id" y" }struct-declarator
 
 static const char * declarations =
 #if 1
+/* struct s1; */
+"id\" s1\" >struct declaration-end"
+" "
+#endif
+#if 1
 /* struct { struct s2 { int x; }; }; */
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s2\" >struct }aggregate-end >struct declaration-end"
+" "
 #endif
-#if 0
+#if 1
 /* struct { struct s3 { int x; }; } str;*/
 "id\" str\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s3\" >struct }aggregate-end >struct define-variables declaration-end"
+" "
+#endif
+#if 1
+/* struct { struct s3 { int x; }; } str; */
+"id\" str\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s3\" >struct }aggregate-end >struct define-variables declaration-end"
+" "
+#endif
+#if 1
+/* struct s1 { int x; }; */
+"aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s1\" >struct declaration-end"
+" "
 #endif
 ;
 
@@ -128,7 +145,7 @@ currentDataType
 ;
 
 static QVector<QSharedPointer<CStackNode>> dataTypes;
-static QMap<QString, QSharedPointer<CDataType>> structTags;
+static QMap<QString, QSharedPointer<CStackNode>> structTags;
 
 static QStack<QSharedPointer<CStackNode>> parseStack;
 
@@ -192,6 +209,7 @@ public:
 			qDebug() << "id:" << id->name;
 		}
 	}
+	static void dumpTypes(void) { qDebug() << "data types\n"; for (auto & t : structTags) dump(t.operator *()); }
 };
 
 extern "C"
@@ -207,6 +225,10 @@ void do_define_variables(void)
 	auto t = Util::pop();
 	if (!t->asDataType())
 		Util::panic("top of stack not a data type");
+	do
+		if (!Util::pop().operator *().asIdentifier())
+			Util::panic();
+	while (!parseStack.isEmpty());
 }
 void do_declaration_end(void)
 {
@@ -267,9 +289,11 @@ auto & t = Util::top().operator *();
 				auto s = Util::top().operator ->()->asDataType();
 				s->isStruct = true;
 				s->name = id->name;
-				dataTypes.append(x);
-				Util::dump();
-				Util::dump(* s);
+				dataTypes.append(Util::top());
+				if (structTags.contains(s->name))
+					qDebug() << "ERROR: struct/union" << s->name << "redefined";
+				else
+					structTags[s->name] = Util::top();
 			}
 			else
 				Util::panic();
@@ -345,6 +369,8 @@ int main(int argc, char *argv[])
 	sf_eval(".( start of parsing)cr");
 	sf_eval(declarations);
 	sf_eval(".( parsing done)cr .s cr");
+
+	Util::dumpTypes();
 
 	return a.exec();
 }
