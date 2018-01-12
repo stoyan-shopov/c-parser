@@ -98,7 +98,8 @@ struct str
 
 #if 1
 /* struct str { struct { int x; }; struct {struct {int y;};};}; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct }aggregate-end id\" str\" >struct declaration-end"
+"declaration detected: aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
+" "
 #endif
 
 #if ENABLE_TEST_CASES
@@ -408,7 +409,7 @@ auto & t = Util::top().operator *();
 		{
 			if (Util::top().operator *().tag() == CStackNode::AGGREGATE)
 			{
-				/* handle named struct/union */
+				/* handle named struct/union definitions */
 				auto s = Util::top().operator ->()->asDataType();
 				s->isStruct = true;
 				s->name = id->name;
