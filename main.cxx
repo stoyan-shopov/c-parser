@@ -135,7 +135,7 @@ static QStack<QSharedPointer<CStackNode>> parseStack;
 class Util
 {
 public:
-	static void panic(std::string message) { qDebug() << "fatal error: " << QString::fromStdString(message); * (int *) 0 = 0; }
+	static void panic(std::string message = "fatal error") { dump(); qDebug() << "fatal error: " << QString::fromStdString(message); * (int *) 0 = 0; }
 	static QSharedPointer<CStackNode> top(void) { if (!parseStack.size()) panic("stack empty"); return parseStack.top(); }
 	static QSharedPointer<CStackNode> pop(void) { if (!parseStack.size()) panic("stack empty"); return parseStack.pop(); }
 	static void drop(void) { pop(); }
@@ -173,7 +173,7 @@ public:
 		}
 		qDebug() << "----------------------";
 	}
-	static void dump(CStackNode & n)
+	static void dump(CStackNode & n, int indentation = 0)
 	{
 		if (auto d = n.asDataType())
 		{
@@ -181,7 +181,7 @@ public:
 			{
 				qDebug() << "struct/union" << d->name << "{";
 				for (auto i : d->members)
-					dump(* i);
+					dump(* i, indentation + 1);
 				qDebug() << "}";
 			}
 			else
@@ -272,7 +272,7 @@ auto & t = Util::top().operator *();
 				Util::dump(* s);
 			}
 			else
-				Util::panic("");
+				Util::panic();
 		}
 		else
 			qDebug() << "struct declaration detected, no effect";
@@ -287,7 +287,7 @@ auto & t = Util::top().operator *();
 		}
 	}
 	else
-		Util::panic("");
+		Util::panic();
 }
 
 void do_aggregate_begin(void){ parseStack.push(QSharedPointer<CDataType>(new CDataType(CDataType::AGGREGATE_BEGIN)));}
@@ -295,17 +295,23 @@ void do_aggregate_end(void)
 {
 auto & s = Util::top().operator *();
 
+	Util::dump();
 	if (s.tag() == CStackNode::AGGREGATE_BEGIN)
 	{
 		s.setTag(CStackNode::AGGREGATE);
 	}
-	else
+	else if (s.asDataType())
 	{
 		/* handle nested struct/union declarations */
-		qDebug() << __func__;
-		Util::dump();
-		Util::panic("bad stack");
+		auto s = Util::pop();
+		if (Util::top().operator *().tag() != CStackNode::AGGREGATE_BEGIN)
+			Util::panic("bad stack");
+		auto t = Util::top().operator *().asDataType();
+		t->members.append(s);
+		t->setTag(CStackNode::AGGREGATE);
 	}
+	else
+		Util::panic();
 }
 
 void do_struct_declarator_list_begin(void){ parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN))); }
