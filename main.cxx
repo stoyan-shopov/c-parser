@@ -84,11 +84,21 @@ struct str
 	struct s *(*(* p)[10][10])[12], z;
 	struct { int x, y, z; } **(*x)[10], d;
 };*/
-#if 1
+#if 0
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end id\" s\" >struct declaration-end"
 " "
 "aggregate{ id\" s\" >struct struct-declarator-list{ id\" p\" >pointer >array{ -2 }array-end >array{ -2 }array-end >pointer >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id\" x\" id\" y\" id\" z\" }struct-declarator-list-end }aggregate-end >struct struct-declarator-list{ id\" x\" >pointer >array{ -2 }array-end >pointer >pointer id\" d\" }struct-declarator-list-end }aggregate-end id\" str\" >struct declaration-end"
 " "
+#endif
+
+#if 0
+/* struct str { struct { int x; } s1; struct {struct {int y;};}s2;}; */
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct struct-declarator-list{ id\" s1\" }struct-declarator-list-end aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct struct-declarator-list{ id\" s2\" }struct-declarator-list-end }aggregate-end id\" str\" >struct declaration-end"
+#endif
+
+#if 1
+/* struct str { struct { int x; }; struct {struct {int y;};};}; */
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct }aggregate-end id\" str\" >struct declaration-end"
 #endif
 
 #if ENABLE_TEST_CASES
@@ -427,6 +437,7 @@ auto & t = Util::top().operator *();
 			Util::drop();
 			qDebug() << "warning: unnamed struct/union that defines no instances";
 		}
+		Util::dump();
 	}
 	else
 		Util::panic();
@@ -444,6 +455,7 @@ auto & s = Util::top().operator *();
 	else if (s.asDataType())
 	{
 		/* handle nested struct/union declarations */
+		Util::dump();
 		auto s = Util::pop();
 		if (Util::top().operator *().tag() != CStackNode::AGGREGATE_BEGIN)
 			Util::panic("bad stack");
