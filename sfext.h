@@ -10,5 +10,6 @@ void do_aggregate_begin(void);
 void do_aggregate_end(void);
 void do_struct_declarator_list_begin(void);
 void do_struct_declarator_list_end(void);
+void do_declaration_end(void);
 
 #endif // SFEXT_H
