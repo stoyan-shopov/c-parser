@@ -251,9 +251,9 @@ struct CIdentifier : CStackNode
 
 struct DataObject
 {
-	QString				name;
-	QSharedPointer<CStackNode>	type;
-	QVector<CStackNode>		typeModifiers;
+	QString					name;
+	QSharedPointer<CStackNode>		type;
+	QVector<QSharedPointer<CStackNode>>	typeModifiers;
 };
 
 struct CDataType : CStackNode
@@ -280,7 +280,7 @@ struct CDataType : CStackNode
 
 struct Variable
 {
-	QVector<CStackNode> typeModifiers;
+	QVector<QSharedPointer<CStackNode>> typeModifiers;
 	QString name;
 	QSharedPointer<CStackNode>	type;
 	Variable(const QString & name, QSharedPointer<CStackNode> type) { this->name = name, this->type = type; }
@@ -536,24 +536,22 @@ auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
 		Util::panic("bad stack");
 	d.type = * t;
 }
-auto t = Util::pop().operator *();
-	Util::dump();
+auto n = Util::pop();
 	do
 	{
-		if (t.asPointer() || t.asArray())
-			d.typeModifiers.push_front(t);
-		else if (t.asIdentifier())
+		if (n.operator *() .asPointer() || n.operator *() .asArray())
+			d.typeModifiers.push_front(n);
+		else if (n.operator *().asIdentifier())
 		{
-			d.name = t.asIdentifier()->name;
+			d.name = n.operator *().asIdentifier()->name;
 			d.type.operator *().asDataType()->members.append(d);
 			d.typeModifiers.clear();
 		}
 		else
 			Util::panic("bad stack");
-		t = Util::pop().operator *();
+		n = Util::pop();
 	}
-	while (t.tag() != CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
-	Util::dump();
+	while (n.operator *().tag() != CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
 }
 
 void do_to_pointer(void)
