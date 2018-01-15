@@ -13,6 +13,8 @@ void do_struct_declarator_list_end(void);
 void do_declaration_end(void);
 void do_to_pointer(void);
 void do_array_end(void);
+void do_to_anonymous_aggregate(void);
+
 void empty(void);
 
 #endif // SFEXT_H

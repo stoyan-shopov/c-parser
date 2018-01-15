@@ -27,6 +27,7 @@ static const struct word custom_dict[] = {
 	MKWORD(custom_dict,		__COUNTER__,	">pointer",	do_to_pointer),
 	MKWORD(custom_dict,		__COUNTER__,	">array{",	empty),
 	MKWORD(custom_dict,		__COUNTER__,	"}array-end",	do_array_end),
+	MKWORD(custom_dict,		__COUNTER__,	">anonymous-aggregate",	do_to_anonymous_aggregate),
 
 }, * custom_dict_start = custom_dict + __COUNTER__;
 

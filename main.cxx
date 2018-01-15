@@ -360,16 +360,23 @@ public:
 			{
 				qDebug() << "struct/union" << d->name << "{";
 				for (auto i : d->members)
+				{
+					for (auto m : i.typeModifiers)
+						dump(m.operator *());
 					dump(i.type.operator *(), indentation + 1);
+					qDebug() << i.name;
+				}
 				qDebug() << "}";
 			}
 			else
 				qDebug() << "data type:" << d->name;
 		}
+		else if (auto m = n.asArray())
+			qDebug() << "array[]";
+		else if (auto m = n.asPointer())
+			qDebug() << "pointer*";
 		else if (auto id = n.asIdentifier())
-		{
 			qDebug() << "id:" << id->name;
-		}
 	}
 	static void dumpTypes(void) { qDebug() << "data types\n"; for (auto & t : structTags) dump(t.operator *()); }
 	static void dumpVariables(void) { qDebug() << "file scope variables\n"; for (auto & v : fileScopeVariables) qDebug() << v.name; }
@@ -493,6 +500,7 @@ void do_aggregate_end(void)
 {
 auto & s = Util::top().operator *();
 
+Util::dump();
 	if (s.tag() == CStackNode::AGGREGATE_BEGIN)
 	{
 		s.setTag(CStackNode::AGGREGATE);
@@ -536,6 +544,7 @@ auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
 		Util::panic("bad stack");
 	d.type = * t;
 }
+QVector<DataObject> members;
 auto n = Util::pop();
 	do
 	{
@@ -544,7 +553,7 @@ auto n = Util::pop();
 		else if (n.operator *().asIdentifier())
 		{
 			d.name = n.operator *().asIdentifier()->name;
-			d.type.operator *().asDataType()->members.append(d);
+			members.push_front(d);
 			d.typeModifiers.clear();
 		}
 		else
@@ -552,6 +561,19 @@ auto n = Util::pop();
 		n = Util::pop();
 	}
 	while (n.operator *().tag() != CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
+	/* clean up stack */
+	/* drop member data type */
+	Util::drop();
+	/* add member list just built to the containing struct/union */
+	auto s = Util::top().operator *().asDataType();
+	s->members += members;
+	Util::dump(Util::top().operator *());
+}
+
+void do_to_anonymous_aggregate(void)
+{
+	Util::dump(Util::pop().operator *());
+	Util::panic();
 }
 
 void do_to_pointer(void)
