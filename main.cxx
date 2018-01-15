@@ -96,10 +96,29 @@ struct str
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct struct-declarator-list{ id\" s1\" }struct-declarator-list-end aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct struct-declarator-list{ id\" s2\" }struct-declarator-list-end }aggregate-end id\" str\" >struct declaration-end"
 #endif
 
-#if 1
+#if ENABLE_TEST_CASES
 /* struct str { struct { int x; }; struct {struct {int y;};};}; */
-"declaration detected: aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
 " "
+#endif
+		
+#if 1
+/* struct str { struct { int r, (*(***x)[10])[20], * a, b[10], *c[10], z; }; struct {struct {int y;};};}; */
+"aggregate{ aggregate{ >>int struct-declarator-list{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
+" "		
+#if 0
+aggregate{
+	aggregate{
+		>>int struct-declarator-list{
+id" r" id" x" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id" a" >pointer id" b" >array{ -2 }array-end id" c" >array{ -2 }array-end >pointer id" z"
+		}struct-declarator-list-end
+	}aggregate-end >struct >anonymous-aggregate
+	aggregate{
+		aggregate{ >>int struct-declarator-list{ id" y" }struct-declarator-list-end
+		}aggregate-end >struct >anonymous-aggregate
+	}aggregate-end >struct >anonymous-aggregate
+}aggregate-end id" str" >struct declaration-end
+#endif
 #endif
 
 #if ENABLE_TEST_CASES
@@ -163,7 +182,6 @@ struct str
 
 struct CIdentifier;
 struct CDataType;
-
 struct CPointerModifier;
 struct CArrayModifier;
 
@@ -195,6 +213,7 @@ public:
 	enum CSTACK_NODE_ENUM tag(void) { return _tag; }
 	const char * tagName(void) { return (_tag < CSTACK_TAG_COUNT) ? tagNames[_tag] : "invalid tag value"; }
 	CStackNode(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
+	CStackNode(void) { _tag = UNSPECIFIED; }
 	virtual ~CStackNode(){}
 };
 const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
@@ -230,6 +249,13 @@ struct CIdentifier : CStackNode
 	CIdentifier(const QString & name, enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { this->name = name; }
 };
 
+struct DataObject
+{
+	QString				name;
+	QSharedPointer<CStackNode>	type;
+	QVector<CStackNode>		typeModifiers;
+};
+
 struct CDataType : CStackNode
 {
 	virtual CDataType * asDataType(void) { return this; }
@@ -248,7 +274,7 @@ struct CDataType : CStackNode
 	CDataType(void) : CStackNode(DATA_TYPE) { typeSpecifiers = 0; }
 	CDataType(enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { typeSpecifiers = 0; }
 	/* data details for 'struct' and 'union' aggregate types */
-	QVector<QSharedPointer<CStackNode>>	members;
+	QVector<DataObject>			members;
 	QString					name;
 };
 
@@ -274,7 +300,25 @@ public:
 	static QSharedPointer<CStackNode> top(void) { if (!parseStack.size()) panic("stack empty"); return parseStack.top(); }
 	static QSharedPointer<CStackNode> pop(void) { if (!parseStack.size()) panic("stack empty"); return parseStack.pop(); }
 	static void drop(void) { pop(); }
-	static QVector<QSharedPointer<CStackNode>>::iterator  locate(enum CStackNode::CSTACK_NODE_ENUM tag)
+	static QVector<QSharedPointer<CStackNode>>::iterator lastTypeNode(void)
+	{
+		if (parseStack.isEmpty())
+			panic("stack empty");
+		QVector<QSharedPointer<CStackNode>>::iterator i = parseStack.end() - 1;
+		while (1)
+		{
+			if (i->operator *().asDataType())
+				return i;
+			if (i == parseStack.begin())
+				break;
+			-- i;
+		}
+		panic("no type node in stack");
+		return parseStack.end();
+		
+	}
+
+	static QVector<QSharedPointer<CStackNode>>::iterator locate(enum CStackNode::CSTACK_NODE_ENUM tag)
 	{
 		/*
 		int i; for (i = parseStack.size() - 1; i >= 0; i --)
@@ -316,7 +360,7 @@ public:
 			{
 				qDebug() << "struct/union" << d->name << "{";
 				for (auto i : d->members)
-					dump(* i, indentation + 1);
+					dump(i.type.operator *(), indentation + 1);
 				qDebug() << "}";
 			}
 			else
@@ -453,17 +497,6 @@ auto & s = Util::top().operator *();
 	{
 		s.setTag(CStackNode::AGGREGATE);
 	}
-	else if (s.asDataType())
-	{
-		/* handle nested struct/union declarations */
-		Util::dump();
-		auto s = Util::pop();
-		if (Util::top().operator *().tag() != CStackNode::AGGREGATE_BEGIN)
-			Util::panic("bad stack");
-		auto t = Util::top().operator *().asDataType();
-		t->members.append(s);
-		t->setTag(CStackNode::AGGREGATE);
-	}
 	else
 		Util::panic();
 }
@@ -471,32 +504,64 @@ auto & s = Util::top().operator *();
 void do_struct_declarator_list_begin(void){ parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN))); }
 void do_struct_declarator_list_end(void)
 {
-auto s = Util::locate(CStackNode::AGGREGATE_BEGIN)->operator ->()->asDataType();
-auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN), i = l + 1;
-
+DataObject d;
+/*
+aggregate begin
+aggregate begin
+data type
+struct declarator list begin
+identifier
+identifier
+pointer*
+pointer*
+pointer*
+array[]
+pointer*
+array[]
+identifier
+pointer*
+identifier
+array[]
+identifier
+array[]
+pointer*
+----------------------
+*/
+{
+	/* sanity checks */
+auto s = Util::locate(CStackNode::AGGREGATE_BEGIN);
+auto t = Util::lastTypeNode();
+auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
+	if (l - t != 1 || t - s != 1)
+		Util::panic("bad stack");
+	d.type = * t;
+}
+auto t = Util::pop().operator *();
 	Util::dump();
-	while (i != parseStack.end())
+	do
 	{
-		if (i->operator *().asIdentifier())
-			s->members.append(* i);
-		++ i;
+		if (t.asPointer() || t.asArray())
+			d.typeModifiers.push_front(t);
+		else if (t.asIdentifier())
+		{
+			d.name = t.asIdentifier()->name;
+			d.type.operator *().asDataType()->members.append(d);
+			d.typeModifiers.clear();
+		}
+		else
+			Util::panic("bad stack");
+		t = Util::pop().operator *();
 	}
-	/* purge stack */
-	int x = l - parseStack.begin();
-	while (x != parseStack.size())
-		parseStack.pop();
-	if (Util::top()->asDataType())
-		parseStack.pop();
+	while (t.tag() != CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
+	Util::dump();
 }
 
 void do_to_pointer(void)
 {
-	Util::dump();
 	parseStack.push(QSharedPointer<CStackNode>(new CPointerModifier()));
 }
 void do_array_end(void)
 {
-	Util::dump();
 	parseStack.push(QSharedPointer<CStackNode>(new CArrayModifier(sf_pop())));
 }
 
