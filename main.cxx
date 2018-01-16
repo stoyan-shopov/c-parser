@@ -254,6 +254,8 @@ struct DataObject
 	QString					name;
 	QSharedPointer<CStackNode>		type;
 	QVector<QSharedPointer<CStackNode>>	typeModifiers;
+	DataObject(void) {}
+	DataObject(QSharedPointer<CStackNode> type) { this->type = type; }
 };
 
 struct CDataType : CStackNode
@@ -354,29 +356,36 @@ public:
 	}
 	static void dump(CStackNode & n, int indentation = 0)
 	{
+		QString indent = QByteArray(indentation, '\t').constData();
 		if (auto d = n.asDataType())
 		{
 			if (d->members.size())
 			{
-				qDebug() << "struct/union" << d->name << "{";
+				qDebug().noquote() << indent << "struct/union" << d->name << "{";
 				for (auto i : d->members)
 				{
+					QString modifiers;
 					for (auto m : i.typeModifiers)
-						dump(m.operator *());
+					{
+						if (auto t = m->asArray())
+							modifiers += "array[] ";
+						else if (auto t = m->asPointer())
+							modifiers += "pointer* ";
+					}
+					if (modifiers.size())
+					qDebug().noquote() << indent << modifiers;
 					dump(i.type.operator *(), indentation + 1);
-					qDebug() << i.name;
+					qDebug().noquote() << indent << i.name;
 				}
-				qDebug() << "}";
+				qDebug().noquote() << indent << "}";
 			}
 			else
-				qDebug() << "data type:" << d->name;
+				qDebug().noquote() << indent << "data type:" << d->name;
 		}
-		else if (auto m = n.asArray())
-			qDebug() << "array[]";
-		else if (auto m = n.asPointer())
-			qDebug() << "pointer*";
 		else if (auto id = n.asIdentifier())
-			qDebug() << "id:" << id->name;
+			qDebug().noquote() << indent << "id:" << id->name;
+		else
+			panic();
 	}
 	static void dumpTypes(void) { qDebug() << "data types\n"; for (auto & t : structTags) dump(t.operator *()); }
 	static void dumpVariables(void) { qDebug() << "file scope variables\n"; for (auto & v : fileScopeVariables) qDebug() << v.name; }
@@ -484,12 +493,12 @@ auto & t = Util::top().operator *();
 	}
 	else if (t.tag() == CStackNode::AGGREGATE)
 	{
+		t.asDataType()->isStruct = true;
 		if (parseStack.size() == 1)
 		{
 			Util::drop();
 			qDebug() << "warning: unnamed struct/union that defines no instances";
 		}
-		Util::dump();
 	}
 	else
 		Util::panic();
@@ -500,7 +509,6 @@ void do_aggregate_end(void)
 {
 auto & s = Util::top().operator *();
 
-Util::dump();
 	if (s.tag() == CStackNode::AGGREGATE_BEGIN)
 	{
 		s.setTag(CStackNode::AGGREGATE);
@@ -567,13 +575,15 @@ auto n = Util::pop();
 	/* add member list just built to the containing struct/union */
 	auto s = Util::top().operator *().asDataType();
 	s->members += members;
-	Util::dump(Util::top().operator *());
 }
 
 void do_to_anonymous_aggregate(void)
 {
-	Util::dump(Util::pop().operator *());
-	Util::panic();
+/* anonymous struct/union member nested in another struct/union */
+auto s = Util::pop(), c = Util::top();
+	if (s->tag() != CStackNode::AGGREGATE || c->tag() != CStackNode::AGGREGATE_BEGIN)
+		Util::panic();
+	c->asDataType()->members.append(DataObject(s));
 }
 
 void do_to_pointer(void)
