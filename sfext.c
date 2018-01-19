@@ -36,6 +36,7 @@ static const struct word custom_dict[] = {
 	MKWORD(custom_dict,		__COUNTER__,	">abstract-declarator-function-id-list{",	do_to_abstract_declarator_function_id_list_begin),
 	MKWORD(custom_dict,		__COUNTER__,	"}abstract-declarator-function-id-list-end",	do_abstract_declarator_function_id_list_end),
 	MKWORD(custom_dict,		__COUNTER__,	">function-id-list{",	do_to_function_id_list_begin),
+	MKWORD(custom_dict,		__COUNTER__,	"}function-id-list-end",	do_function_id_list_end),
 
 }, * custom_dict_start = custom_dict + __COUNTER__;
 

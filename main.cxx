@@ -104,9 +104,8 @@ struct str
 
 
 #if 1
-/* int (*fpfi1(struct { int x; } *, struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *), (*fpfi(int (*)(long), int))(int, ...), (*foo(x))(z), a, b, c, *((****t)[2][3])[4]; */
-"id\" fpfi1\" >function-param-type-list{ id\" xxx\" >pointer >array[] aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" z\" >struct |param-list-boundary| >abstract-declarator-array[] >pointer aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" x\" >struct |param-list-boundary| >pointer aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }function-param-type-list-end >pointer >function-param-type-list{ >pointer id\" foo\" >struct }function-param-type-list-end id\" fpfi\" >function-param-type-list{ >>int |param-list-boundary| >pointer >abstract-declarator-function-id-list{ >>long }abstract-declarator-function-id-list-end >>int }function-param-type-list-end >pointer >function-param-type-list{  }function-param-type-list-end id\" foo\" >function-id-list{ id\" x\" }function-id-list-end >pointer >function-id-list{ id\" z\" }function-id-list-end id\" a\" id\" b\" id\" c\" id\" t\" >pointer >pointer >pointer >pointer >array{ -2 }array-end >array{ -2 }array-end >array{ -2 }array-end >pointer >>int define-variables declaration-end"
-
+/* int (*fpfi1(struct { int x; } *, struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *); */
+"id\" fpfi1\" >function-param-type-list{ id\" xxx\" >pointer >array[] aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" z\" >struct |param-list-boundary| >abstract-declarator-array[] >pointer aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" x\" >struct |param-list-boundary| >pointer aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }function-param-type-list-end >pointer >function-param-type-list{ >pointer id\" foo\" >struct }function-param-type-list-end >>int define-variables declaration-end"
 #endif
 #if 0
 /* struct str { struct { int r, (*(***x)[10])[20], * a, b[10], *c[10], z; }; struct {struct {int y;};};}; */
@@ -424,6 +423,7 @@ void do_to_long(void) { if (!parseStack.size() || parseStack.top()->tag() != CSt
 void do_to_int(void) { if (!parseStack.size() || parseStack.top()->tag() != CStackNode::DATA_TYPE) parseStack.push(QSharedPointer<CDataType>(new CDataType)); auto t = parseStack.top()->asDataType(); t->isInt = true; t->name += "int "; }
 void do_define_variables(void)
 {
+	Util::dump();
 	Util::panic();
 	auto t = Util::pop();
 	if (!t->asDataType())
@@ -668,6 +668,11 @@ void do_abstract_declarator_function_id_list_end(void)
 void do_to_function_id_list_begin(void)
 {
 	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN)));
+}
+
+void do_function_id_list_end(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END)));
 }
 
 void empty(void){}
