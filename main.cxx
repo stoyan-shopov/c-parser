@@ -101,8 +101,14 @@ struct str
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
 " "
 #endif
-		
+
+
 #if 1
+/* int (*fpfi1(struct { int x; } *, struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *), (*fpfi(int (*)(long), int))(int, ...), (*foo(x))(z), a, b, c, *((****t)[2][3])[4]; */
+"id\" fpfi1\" >function-param-type-list{ id\" xxx\" >pointer >array[] aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" z\" >struct |param-list-boundary| >abstract-declarator-array[] >pointer aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" x\" >struct |param-list-boundary| >pointer aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }function-param-type-list-end >pointer >function-param-type-list{ >pointer id\" foo\" >struct }function-param-type-list-end id\" fpfi\" >function-param-type-list{ >>int |param-list-boundary| >pointer >abstract-declarator-function-id-list{ >>long }abstract-declarator-function-id-list-end >>int }function-param-type-list-end >pointer >function-param-type-list{  }function-param-type-list-end id\" foo\" >function-id-list{ id\" x\" }function-id-list-end >pointer >function-id-list{ id\" z\" }function-id-list-end id\" a\" id\" b\" id\" c\" id\" t\" >pointer >pointer >pointer >pointer >array{ -2 }array-end >array{ -2 }array-end >array{ -2 }array-end >pointer >>int define-variables declaration-end"
+
+#endif
+#if 0
 /* struct str { struct { int r, (*(***x)[10])[20], * a, b[10], *c[10], z; }; struct {struct {int y;};};}; */
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
 " "		
@@ -198,6 +204,13 @@ struct CStackNode
 		STRUCT_DECLARATOR_LIST_BEGIN,
 		POINTER_MODIFIER,
 		ARRAY_MODIFIER,
+		FUNCTION_PARAMETER_TYPE_LIST_BEGIN,
+		FUNCTION_PARAMETER_TYPE_LIST_END,
+		FUNCTION_PARAMETER_ID_LIST_BEGIN,
+		FUNCTION_PARAMETER_ID_LIST_END,
+		FUNCTION_PARAMETER_TYPE_LIST_BOUNDARY,
+		ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN,
+		ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END,
 		CSTACK_TAG_COUNT,
 	};
 private:
@@ -226,6 +239,13 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::STRUCT_DECLARATOR_LIST_BEGIN]	=	"struct declarator list begin",
 	[CStackNode::POINTER_MODIFIER]	=	"pointer*",
 	[CStackNode::ARRAY_MODIFIER]	=	"array[]",
+	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN]	=	"function parameter type list start",
+	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_END]		=	"function parameter type list end",
+	[CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN]		=	"function parameter id list start",
+	[CStackNode::FUNCTION_PARAMETER_ID_LIST_END]		=	"function parameter id list end",
+	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BOUNDARY]	=	"function parameter type list boundary",
+	[CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN]	=	"abstract declarator function id list start",
+	[CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END]	=	"abstract declarator function id list end",
 };
 
 struct CPointerModifier : public CStackNode
@@ -404,6 +424,7 @@ void do_to_long(void) { if (!parseStack.size() || parseStack.top()->tag() != CSt
 void do_to_int(void) { if (!parseStack.size() || parseStack.top()->tag() != CStackNode::DATA_TYPE) parseStack.push(QSharedPointer<CDataType>(new CDataType)); auto t = parseStack.top()->asDataType(); t->isInt = true; t->name += "int "; }
 void do_define_variables(void)
 {
+	Util::panic();
 	auto t = Util::pop();
 	if (!t->asDataType())
 		Util::panic("top of stack not a data type");
@@ -486,7 +507,15 @@ auto & t = Util::top().operator *();
 			{
 				/* handle struct/union reference to an already defined struct/union */
 				if (!structTags.contains(id->name))
-					Util::panic(QString("struct/union '") + id->name + "' not found");
+				{
+					Util::dump();
+					qDebug() << QString("warning: struct/union '") + id->name + "' not found; constructing incomplete type node";
+					auto t = QSharedPointer<CStackNode>(new CDataType(CStackNode::AGGREGATE));
+					auto s = t.operator*().asDataType();
+					s->isStruct = true;
+					s->name = id->name;
+					parseStack.push(t);
+				}
 				else
 					parseStack.push(structTags[id->name]);
 			}
@@ -596,6 +625,49 @@ void do_to_pointer(void)
 void do_array_end(void)
 {
 	parseStack.push(QSharedPointer<CStackNode>(new CArrayModifier(sf_pop())));
+}
+
+void do_to_function_parameter_type_list_begin(void)
+{
+	Util::dump();
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)));
+}
+
+void do_to_function_parameter_type_list_end(void)
+{
+	Util::dump();
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_END)));
+}
+
+void do_to_empty_array(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CArrayModifier(0)));
+}
+
+void do_to_abstract_declarator_array(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CArrayModifier(0)));
+}
+
+void do_parameter_list_boundary(void)
+{
+	Util::dump();
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BOUNDARY)));
+}
+
+void do_to_abstract_declarator_function_id_list_begin(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN)));
+}
+
+void do_abstract_declarator_function_id_list_end(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END)));
+}
+
+void do_to_function_id_list_begin(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN)));
 }
 
 void empty(void){}

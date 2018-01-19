@@ -14,6 +14,14 @@ void do_declaration_end(void);
 void do_to_pointer(void);
 void do_array_end(void);
 void do_to_anonymous_aggregate(void);
+void do_to_function_parameter_type_list_begin(void);
+void do_to_function_parameter_type_list_end(void);
+void do_to_empty_array(void);
+void do_parameter_list_boundary(void);
+void do_to_abstract_declarator_array(void);
+void do_to_abstract_declarator_function_id_list_begin(void);
+void do_abstract_declarator_function_id_list_end(void);
+void do_to_function_id_list_begin(void);
 
 void empty(void);
 
