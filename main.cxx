@@ -270,11 +270,14 @@ struct CDataType : CStackNode
 			bool	isLong		: 1;
 			bool	isStruct	: 1;
 			bool	isArray		: 1;
+			bool	isFunction	: 1;
 		};
 		unsigned typeSpecifiers;
 	};
 	CDataType(void) : CStackNode(DATA_TYPE) { typeSpecifiers = 0; }
 	CDataType(enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { typeSpecifiers = 0; }
+	QSharedPointer<CStackNode>		functionReturnType;
+	QVector<DataObject>			functionArguments;
 	/* data details for 'struct' and 'union' aggregate types */
 	QVector<DataObject>			members;
 	QString					name;
