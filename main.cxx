@@ -598,7 +598,7 @@ auto & s = Util::top().operator *();
 void do_struct_declarator_list_begin(void){ parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN))); }
 void do_struct_declarator_list_end(void)
 {
-CDataObject d;
+CStackNode type;
 /*
 aggregate begin
 aggregate begin
@@ -628,7 +628,7 @@ auto t = Util::lastTypeNode();
 auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
 	if (l - t != 1 || t - s != 1)
 		Util::panic("bad stack");
-	d.type = * t;
+	type = * t;
 }
 QVector<CDataObject> members;
 auto n = Util::pop();
