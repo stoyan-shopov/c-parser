@@ -22,6 +22,8 @@ void do_to_abstract_declarator_function_id_list_begin(void);
 void do_abstract_declarator_function_id_list_end(void);
 void do_to_function_id_list_begin(void);
 void do_function_id_list_end(void);
+void do_to_abstract_parameter_declaration(void);
+
 
 void empty(void);
 

@@ -142,7 +142,6 @@ struct str
 " "
 #endif
 
-#endif
 #if 0
 /* struct str { struct { int r, (*(***x)[10])[20], * a, b[10], *c[10], z; }; struct {struct {int y;};};}; */
 "aggregate{ aggregate{ >>int struct-declarator-list{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
@@ -245,6 +244,7 @@ struct CStackNode
 		FUNCTION_PARAMETER_ID_LIST_END,
 		ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN,
 		ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END,
+		DATA_OBJECT,
 		CSTACK_TAG_COUNT,
 	};
 private:
@@ -279,6 +279,7 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::FUNCTION_PARAMETER_ID_LIST_END]		=	"function parameter id list end",
 	[CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN]	=	"abstract declarator function id list start",
 	[CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END]	=	"abstract declarator function id list end",
+	[CStackNode::DATA_OBJECT]	=				"data object",
 };
 
 struct CPointerModifier : public CStackNode
@@ -302,13 +303,13 @@ struct CIdentifier : CStackNode
 	CIdentifier(const QString & name, enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { this->name = name; }
 };
 
-struct DataObject
+struct DataObject : public CStackNode
 {
 	QString					name;
 	QSharedPointer<CStackNode>		type;
 	QVector<QSharedPointer<CStackNode>>	typeModifiers;
-	DataObject(void) {}
-	DataObject(QSharedPointer<CStackNode> type) { this->type = type; }
+	DataObject(void) : CStackNode(DATA_OBJECT) {}
+	DataObject(QSharedPointer<CStackNode> type) : CStackNode(DATA_OBJECT) { this->type = type; }
 };
 
 struct CDataType : CStackNode
@@ -446,6 +447,13 @@ public:
 	}
 	static void dumpTypes(void) { qDebug() << "data types\n"; for (auto & t : structTags) dump(t.operator *()); }
 	static void dumpVariables(void) { qDebug() << "file scope variables\n"; for (auto & v : fileScopeVariables) qDebug() << v.name; }
+	static void fold_to_data_object(void)
+	{
+		/* inspects the stack, if the top of the stack contains a data type, and optionally any modifiers (e.g., pointers, arrays)
+		 * below it, assembles them in an unnamed data object that replaces those nodes on the stack */
+		if (!top()->asDataType())
+			panic();
+	}
 };
 
 extern "C"
@@ -666,6 +674,12 @@ void do_to_function_parameter_type_list_begin(void)
 {
 	Util::dump();
 	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)));
+}
+
+void do_to_abstract_parameter_declaration(void)
+{
+	Util::dump();
+	Util::panic();
 }
 
 void do_to_function_parameter_type_list_end(void)
