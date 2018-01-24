@@ -31,7 +31,6 @@ static const struct word custom_dict[] = {
 	MKWORD(custom_dict,		__COUNTER__,	">function-param-type-list{",	do_to_function_parameter_type_list_begin),
 	MKWORD(custom_dict,		__COUNTER__,	"}function-param-type-list-end",	do_to_function_parameter_type_list_end),
 	MKWORD(custom_dict,		__COUNTER__,	">array[]",	do_to_empty_array),
-	MKWORD(custom_dict,		__COUNTER__,	"|param-list-boundary|",	do_parameter_list_boundary),
 	MKWORD(custom_dict,		__COUNTER__,	">abstract-declarator-array[]",	do_to_abstract_declarator_array),
 	MKWORD(custom_dict,		__COUNTER__,	">abstract-declarator-function-id-list{",	do_to_abstract_declarator_function_id_list_begin),
 	MKWORD(custom_dict,		__COUNTER__,	"}abstract-declarator-function-id-list-end",	do_abstract_declarator_function_id_list_end),
