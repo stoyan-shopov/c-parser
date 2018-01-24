@@ -224,7 +224,7 @@ struct CIdentifier;
 struct CDataType;
 struct CPointerModifier;
 struct CArrayModifier;
-
+struct CDataObject;
 
 struct CStackNode
 {
@@ -255,6 +255,7 @@ public:
 	virtual CDataType * asDataType(void) { return 0; }
 	virtual struct CPointerModifier * asPointer(void) { return 0; }
 	virtual struct CArrayModifier * asArray(void) { return 0; }
+	virtual struct CDataObject * asDataobject(void) { return 0; }
 
 	void setTag(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
 	enum CSTACK_NODE_ENUM tag(void) { return _tag; }
@@ -303,13 +304,16 @@ struct CIdentifier : CStackNode
 	CIdentifier(const QString & name, enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { this->name = name; }
 };
 
-struct DataObject : public CStackNode
+struct CDataObject : public CStackNode
 {
 	QString					name;
 	QSharedPointer<CStackNode>		type;
 	QVector<QSharedPointer<CStackNode>>	typeModifiers;
-	DataObject(void) : CStackNode(DATA_OBJECT) {}
-	DataObject(QSharedPointer<CStackNode> type) : CStackNode(DATA_OBJECT) { this->type = type; }
+	CDataObject(void) : CStackNode(DATA_OBJECT) {}
+	CDataObject(QSharedPointer<CStackNode> type) : CStackNode(DATA_OBJECT) { this->type = type; }
+	CDataObject(const QString & name, QSharedPointer<CStackNode> type) : CStackNode(DATA_OBJECT) { this->type = type; this->name = name; }
+
+	struct CDataObject * asDataobject(void) { return this; }
 };
 
 struct CDataType : CStackNode
@@ -332,24 +336,15 @@ struct CDataType : CStackNode
 	CDataType(void) : CStackNode(DATA_TYPE) { typeSpecifiers = 0; }
 	CDataType(enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { typeSpecifiers = 0; }
 	QSharedPointer<CStackNode>		functionReturnType;
-	QVector<DataObject>			functionParameters;
+	QVector<CDataObject>			functionParameters;
 	/* data details for 'struct' and 'union' aggregate types */
-	QVector<DataObject>			members;
+	QVector<CDataObject>			members;
 	QString					name;
-};
-
-struct Variable
-{
-	QVector<QSharedPointer<CStackNode>> typeModifiers;
-	QString name;
-	QSharedPointer<CStackNode>	type;
-	Variable(const QString & name, QSharedPointer<CStackNode> type) { this->name = name, this->type = type; }
-	Variable(void){}
 };
 
 static QVector<QSharedPointer<CStackNode>> dataTypes;
 static QMap<QString, QSharedPointer<CStackNode>> structTags;
-static QMap<QString, Variable> fileScopeVariables;
+static QMap<QString, CDataObject> fileScopeVariables;
 
 static QStack<QSharedPointer<CStackNode>> parseStack;
 
@@ -453,6 +448,14 @@ public:
 		 * below it, assembles them in an unnamed data object that replaces those nodes on the stack */
 		if (!top()->asDataType())
 			panic();
+		QSharedPointer<CDataObject> d(new CDataObject(pop()));
+		while (!parseStack.empty())
+		{
+			auto x = top();
+			if (x->asArray() || x->asPointer())
+				d->asDataobject()->typeModifiers.push_front(pop());
+		}
+		parseStack.push(d);
 	}
 };
 
@@ -480,7 +483,7 @@ void do_define_variables(void)
 		if (fileScopeVariables.contains(id->name))
 			qDebug() << "ERROR: file scope variable '" + id->name + "' redefined";
 		else
-			fileScopeVariables[id->name] = Variable(id->name, t);
+			fileScopeVariables[id->name] = CDataObject(id->name, t);
 	}
 	while (!parseStack.isEmpty());
 }
@@ -595,7 +598,7 @@ auto & s = Util::top().operator *();
 void do_struct_declarator_list_begin(void){ parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN))); }
 void do_struct_declarator_list_end(void)
 {
-DataObject d;
+CDataObject d;
 /*
 aggregate begin
 aggregate begin
@@ -627,7 +630,7 @@ auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
 		Util::panic("bad stack");
 	d.type = * t;
 }
-QVector<DataObject> members;
+QVector<CDataObject> members;
 auto n = Util::pop();
 	do
 	{
@@ -658,7 +661,7 @@ void do_to_anonymous_aggregate(void)
 auto s = Util::pop(), c = Util::top();
 	if (s->tag() != CStackNode::AGGREGATE || c->tag() != CStackNode::AGGREGATE_BEGIN)
 		Util::panic();
-	c->asDataType()->members.append(DataObject(s));
+	c->asDataType()->members.append(CDataObject(s));
 }
 
 void do_to_pointer(void)
