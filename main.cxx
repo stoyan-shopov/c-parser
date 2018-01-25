@@ -103,7 +103,7 @@ struct str
 #endif
 
 
-#if 1
+#if 0
 /* int (*(*fpfi1(struct { int x; } *, void * (**[])(int, int *), struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *))(a,b,c); */
 "id\" fpfi1\" "
 ">function-param-type-list{ "
@@ -142,9 +142,24 @@ struct str
 " "
 #endif
 
-#if 0
-/* struct str { struct { int r, (*(***x)[10])[20], * a, b[10], *c[10], z; }; struct {struct {int y;};};}; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
+#if 1
+/*
+struct str
+{
+	struct
+	{
+		int r, (*(***x)[10])[20], * a, b[10], *c[10], z;
+	};
+	struct
+	{
+		struct
+		{
+			int y;
+		};
+	};
+};
+*/
+"aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
 " "		
 #if 0
 aggregate{
@@ -235,7 +250,6 @@ struct CStackNode
 		DATA_TYPE,
 		AGGREGATE_BEGIN,
 		AGGREGATE,
-		STRUCT_DECLARATOR_LIST_BEGIN,
 		POINTER_MODIFIER,
 		ARRAY_MODIFIER,
 		FUNCTION_PARAMETER_TYPE_LIST_BEGIN,
@@ -271,7 +285,6 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::DATA_TYPE]		=	"data type",
 	[CStackNode::AGGREGATE_BEGIN]	=	"aggregate begin",
 	[CStackNode::AGGREGATE]		=	"aggregate",
-	[CStackNode::STRUCT_DECLARATOR_LIST_BEGIN]	=	"struct declarator list begin",
 	[CStackNode::POINTER_MODIFIER]	=	"pointer*",
 	[CStackNode::ARRAY_MODIFIER]	=	"array[]",
 	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN]	=	"function parameter type list start",
@@ -454,8 +467,31 @@ public:
 			auto x = top();
 			if (x->asArray() || x->asPointer())
 				d->asDataobject()->typeModifiers.push_front(pop());
+			else
+				break;
 		}
 		parseStack.push(d);
+	}
+	static QVector<CDataObject> reap_data_objects(void)
+	{
+		QVector<CDataObject> d;
+		auto t = pop();
+		if (!t->asDataType())
+			panic();
+		do
+		{
+			parseStack.push(t);
+			fold_to_data_object();
+			auto x = * pop()->asDataobject();
+			if (!top()->asIdentifier())
+				panic();
+			x.name = pop()->asIdentifier()->name;
+			d.push_front(x);
+		}
+		while (!parseStack.empty()
+			&& top()->tag() != CStackNode::AGGREGATE_BEGIN
+				);
+		return d;
 	}
 };
 
@@ -469,23 +505,14 @@ void do_to_long(void) { if (!parseStack.size() || parseStack.top()->tag() != CSt
 void do_to_int(void) { if (!parseStack.size() || parseStack.top()->tag() != CStackNode::DATA_TYPE) parseStack.push(QSharedPointer<CDataType>(new CDataType)); auto t = parseStack.top()->asDataType(); t->isInt = true; t->name += "int "; }
 void do_define_variables(void)
 {
-	Util::dump();
-	Util::panic();
-	auto t = Util::pop();
-	if (!t->asDataType())
-		Util::panic("top of stack not a data type");
-	do
-	{
-		auto d = Util::pop();
-		auto id = d.operator *() .asIdentifier();
-		if (!id)
-			Util::panic();
-		if (fileScopeVariables.contains(id->name))
-			qDebug() << "ERROR: file scope variable '" + id->name + "' redefined";
+auto d = Util::reap_data_objects();
+	if (!parseStack.empty())
+		Util::panic();
+	for (auto x : d)
+		if (fileScopeVariables.contains(x.name))
+			qDebug() << "ERROR: file scope variable '" + x.name + "' redefined";
 		else
-			fileScopeVariables[id->name] = CDataObject(id->name, t);
-	}
-	while (!parseStack.isEmpty());
+			fileScopeVariables[x.name] = x;
 }
 void do_declaration_end(void)
 {
@@ -595,71 +622,43 @@ auto & s = Util::top().operator *();
 		Util::panic();
 }
 
-void do_struct_declarator_list_begin(void){ parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN))); }
-void do_struct_declarator_list_end(void)
+void do_to_struct_declaration(void)
 {
-CStackNode type;
 /*
 aggregate begin
 aggregate begin
+identifier
+identifier
+pointer*
+pointer*
+pointer*
+array[]
+pointer*
+array[]
+identifier
+pointer*
+identifier
+array[]
+identifier
+array[]
+pointer*
+identifier
 data type
-struct declarator list begin
-identifier
-identifier
-pointer*
-pointer*
-pointer*
-array[]
-pointer*
-array[]
-identifier
-pointer*
-identifier
-array[]
-identifier
-array[]
-pointer*
-----------------------
 */
-{
-	/* sanity checks */
-auto s = Util::locate(CStackNode::AGGREGATE_BEGIN);
-auto t = Util::lastTypeNode();
-auto l = Util::locate(CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
-	if (l - t != 1 || t - s != 1)
-		Util::panic("bad stack");
-	type = * t;
-}
-QVector<CDataObject> members;
-auto n = Util::pop();
-	do
-	{
-		if (n.operator *() .asPointer() || n.operator *() .asArray())
-			d.typeModifiers.push_front(n);
-		else if (n.operator *().asIdentifier())
-		{
-			d.name = n.operator *().asIdentifier()->name;
-			members.push_front(d);
-			d.typeModifiers.clear();
-		}
-		else
-			Util::panic("bad stack");
-		n = Util::pop();
-	}
-	while (n.operator *().tag() != CStackNode::STRUCT_DECLARATOR_LIST_BEGIN);
-	/* clean up stack */
-	/* drop member data type */
-	Util::drop();
-	/* add member list just built to the containing struct/union */
-	auto s = Util::top().operator *().asDataType();
-	s->members += members;
+	auto m = Util::reap_data_objects();
+	auto s = Util::top();
+	if (s->tag() != CStackNode::AGGREGATE_BEGIN)
+		Util::panic();
+	s->asDataType()->members << m;
 }
 
 void do_to_anonymous_aggregate(void)
 {
 /* anonymous struct/union member nested in another struct/union */
 auto s = Util::pop(), c = Util::top();
+
 	if (s->tag() != CStackNode::AGGREGATE || c->tag() != CStackNode::AGGREGATE_BEGIN)
+		/*! \todo	this should be fixed, this is valid C code: 'struct { int; };' */
 		Util::panic();
 	c->asDataType()->members.append(CDataObject(s));
 }
