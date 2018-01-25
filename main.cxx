@@ -19,29 +19,11 @@ long long long;
 long int short signed struct x a;
 id" a" id" x" >struct >>signed >>short >>int >>long define-variables declaration-end
 
-struct str { int y; } x;
-id" x" aggregate{ >>int struct-declarator-list{ id" y" }struct-declarator-list-end }aggregate-end id" str" >struct define-variables declaration-end
-
 int x;
 id" x" >>int define-variables declaration-end
 
 int x, y, z;
 id" x" id" y" id" z" >>int define-variables declaration-end
-
-struct
-{
-	int x, y;
-}
-s;
-id" s" aggregate{ >>int struct-declarator-list{ id" x" id" y" }struct-declarator-list-end }aggregate-end >struct define-variables declaration-end
-
-struct str
-{
-	int x, y;
-
-	struct { int a, b; struct { int xxx; }; } *** arr[][10][20][30];
-}
-id" s" aggregate{ >>int struct-declarator-list{ id" x" id" y" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id" a" id" b" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id" xxx" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct struct-declarator-list{ >pointer >pointer >pointer >array{ -2 }array-end >array{ -2 }array-end >array{ -2 }array-end >array[] id" arr" }struct-declarator-list-end }aggregate-end id" str" >struct define-variables declaration-end
 
 
 int ** x;
@@ -76,6 +58,7 @@ id" a" >pointer >array[] >pointer id" b" id" c" >>int define-variables declarati
 
 
 static const char * declarations =
+#if 0
 /*
 struct s { struct {int x;};};
 
@@ -84,65 +67,18 @@ struct str
 	struct s *(*(* p)[10][10])[12], z;
 	struct { int x, y, z; } **(*x)[10], d;
 };*/
-#if 0
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end id\" s\" >struct declaration-end"
-" "
-"aggregate{ id\" s\" >struct struct-declarator-list{ id\" p\" >pointer >array{ -2 }array-end >array{ -2 }array-end >pointer >array{ -2 }array-end >pointer id\" z\" }struct-declarator-list-end aggregate{ >>int struct-declarator-list{ id\" x\" id\" y\" id\" z\" }struct-declarator-list-end }aggregate-end >struct struct-declarator-list{ id\" x\" >pointer >array{ -2 }array-end >pointer >pointer id\" d\" }struct-declarator-list-end }aggregate-end id\" str\" >struct declaration-end"
-" "
-#endif
 
-#if 0
-/* struct str { struct { int x; } s1; struct {struct {int y;};}s2;}; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct struct-declarator-list{ id\" s1\" }struct-declarator-list-end aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct struct-declarator-list{ id\" s2\" }struct-declarator-list-end }aggregate-end id\" str\" >struct declaration-end"
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct str { struct { int x; }; struct {struct {int y;};};}; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
-" "
-#endif
-
-
-#if 0
-/* int (*(*fpfi1(struct { int x; } *, void * (**[])(int, int *), struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *))(a,b,c); */
-"id\" fpfi1\" "
-">function-param-type-list{ "
-	">pointer aggregate{ "
-		">>int struct-declarator-list{ id\" x\" }struct-declarator-list-end "
-	"}aggregate-end >struct >abstract-parameter-declaration >parameter-list "
-" "
-	">abstract-declarator-array[] >pointer >pointer "
-		">abstract-declarator-function-param-type-list{ "
-			">>int >parameter-declaration-specifiers >parameter-list >pointer >>int >abstract-parameter-declaration >parameter-list "
-		"}abstract-declarator-function-param-type-list-end "
-	">pointer >>void >abstract-parameter-declaration >parameter-list "
-" "
-	">abstract-declarator-array[] >pointer aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" x\" >struct >abstract-parameter-declaration >parameter-list "
-" "
-	"id\" xxx\" >pointer >array[] aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" z\" >struct >parameter-declaration >parameter-list "
-" "
-"}function-param-type-list-end >pointer "
-" "
-">function-param-type-list{ "
-	">pointer id\" foo\" >struct >abstract-parameter-declaration >parameter-list "
-" "
-"}function-param-type-list-end "
-" "
-	">pointer "
-">function-id-list{ "
-	"id\" a\" >id-list id\" b\" >id-list id\" c\" >id-list "
-"}function-id-list-end >>int define-variables declaration-end "
-
-" "
-#endif
-
-#if 0
-/* int (*(*fpfi1(struct { int x; } *, void * (**asd[])(int, int *), struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *))(a,b,c); */
-"id\" fpfi1\" >function-param-type-list{ >pointer aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct >abstract-parameter-declaration >parameter-list id\" asd\" >array[] >pointer >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list >pointer >>int >abstract-parameter-declaration >parameter-list }function-param-type-list-end >pointer >>void >parameter-declaration >parameter-list >abstract-declarator-array[] >pointer aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" x\" >struct >abstract-parameter-declaration >parameter-list id\" xxx\" >pointer >array[] aggregate{ >>int struct-declarator-list{ id\" y\" }struct-declarator-list-end }aggregate-end id\" z\" >struct >parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-param-type-list{ >pointer id\" foo\" >struct >abstract-parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-id-list{ id\" a\" >id-list id\" b\" >id-list id\" c\" >id-list }function-id-list-end >>int define-variables declaration-end"
+"aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
 " "
 #endif
 
 #if 1
+/* int (*(*fpfi1(struct { int x; } *, void * (**asd[])(int, int *), struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *))(a,b,c); */
+"id\" fpfi1\" >function-param-type-list{ >pointer aggregate{ id\" x\" >>int >struct-declaration }aggregate-end >struct >abstract-parameter-declaration >parameter-list id\" asd\" >array[] >pointer >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list >pointer >>int >abstract-parameter-declaration >parameter-list }function-param-type-list-end >pointer >>void >parameter-declaration >parameter-list >abstract-declarator-array[] >pointer aggregate{ id\" y\" >>int >struct-declaration }aggregate-end id\" x\" >struct >abstract-parameter-declaration >parameter-list id\" xxx\" >pointer >array[] aggregate{ id\" y\" >>int >struct-declaration }aggregate-end id\" z\" >struct >parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-param-type-list{ >pointer id\" foo\" >struct >abstract-parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-id-list{ id\" a\" >id-list id\" b\" >id-list id\" c\" >id-list }function-id-list-end >>int define-variables declaration-end"
+" "
+#endif
+
+#if 0
 /*
 struct str
 {
@@ -161,19 +97,6 @@ struct str
 */
 "aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
 " "		
-#if 0
-aggregate{
-	aggregate{
-		>>int struct-declarator-list{
-id" r" id" x" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id" a" >pointer id" b" >array{ -2 }array-end id" c" >array{ -2 }array-end >pointer id" z"
-		}struct-declarator-list-end
-	}aggregate-end >struct >anonymous-aggregate
-	aggregate{
-		aggregate{ >>int struct-declarator-list{ id" y" }struct-declarator-list-end
-		}aggregate-end >struct >anonymous-aggregate
-	}aggregate-end >struct >anonymous-aggregate
-}aggregate-end id" str" >struct declaration-end
-#endif
 #endif
 
 #if ENABLE_TEST_CASES
@@ -181,55 +104,10 @@ id" r" id" x" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ 
 "id\" s1\" >struct declaration-end"
 " "
 #endif
-#if ENABLE_TEST_CASES
-/* struct { struct s2 { int x; }; }; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s2\" >struct }aggregate-end >struct declaration-end"
-" "
-#endif
-#if ENABLE_TEST_CASES
-/* struct { struct s3 { int x; }; } str;*/
-"id\" str\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s3\" >struct }aggregate-end >struct define-variables declaration-end"
-" "
-#endif
-#if ENABLE_TEST_CASES
-/* same as above - test duplicate detection */
-/* struct { struct s3 { int x; }; } str; */
-"id\" str\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s3\" >struct }aggregate-end >struct define-variables declaration-end"
-" "
-#endif
-#if ENABLE_TEST_CASES
-/* struct s1 { int x; }; */
-"aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s1\" >struct declaration-end"
-" "
-#endif
 
 #if ENABLE_TEST_CASES
 /* struct s1 s; */
 "id\" s\" id\" s1\" >struct define-variables declaration-end"
-" "
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct { struct { int x; }; }; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct declaration-end"
-" "
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct { struct { int x; }; } s1; */
-"id\" s1\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct define-variables declaration-end"
-" "
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct s4 { struct { int x; }; }; */
-"aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end >struct }aggregate-end id\" s4\" >struct declaration-end"
-" "
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct s5 { struct s6 { int x; }; } s2; */
-"id\" s2\" aggregate{ aggregate{ >>int struct-declarator-list{ id\" x\" }struct-declarator-list-end }aggregate-end id\" s6\" >struct }aggregate-end id\" s5\" >struct define-variables declaration-end"
 " "
 #endif
 
@@ -253,11 +131,8 @@ struct CStackNode
 		POINTER_MODIFIER,
 		ARRAY_MODIFIER,
 		FUNCTION_PARAMETER_TYPE_LIST_BEGIN,
-		FUNCTION_PARAMETER_TYPE_LIST_END,
+		FUNCTION_PARAMETER_TYPE_LIST,
 		FUNCTION_PARAMETER_ID_LIST_BEGIN,
-		FUNCTION_PARAMETER_ID_LIST_END,
-		ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN,
-		ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END,
 		DATA_OBJECT,
 		CSTACK_TAG_COUNT,
 	};
@@ -288,11 +163,8 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::POINTER_MODIFIER]	=	"pointer*",
 	[CStackNode::ARRAY_MODIFIER]	=	"array[]",
 	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN]	=	"function parameter type list start",
-	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_END]		=	"function parameter type list end",
+	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST]		=	"function parameter type list",
 	[CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN]		=	"function parameter id list start",
-	[CStackNode::FUNCTION_PARAMETER_ID_LIST_END]		=	"function parameter id list end",
-	[CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN]	=	"abstract declarator function id list start",
-	[CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END]	=	"abstract declarator function id list end",
 	[CStackNode::DATA_OBJECT]	=				"data object",
 };
 
@@ -337,12 +209,14 @@ struct CDataType : CStackNode
 	{
 		struct
 		{
+			bool	isVoid		: 1;
 			bool	isInt		: 1;
 			bool	isLong		: 1;
 			bool	isStruct	: 1;
 			bool	isArray		: 1;
 			bool	isFunction	: 1;
-			bool	isFunctionParameterList	: 1;
+			bool	isFunctionParameterList		: 1;
+			bool	isFunctionParameterIdList	: 1;
 		};
 		unsigned typeSpecifiers;
 	};
@@ -467,6 +341,12 @@ public:
 			auto x = top();
 			if (x->asArray() || x->asPointer())
 				d->asDataobject()->typeModifiers.push_front(pop());
+			else if (x->tag() == CStackNode::FUNCTION_PARAMETER_TYPE_LIST)
+			{
+				x = pop();
+				x->asDataType()->functionReturnType = d->type;
+				d = QSharedPointer<CDataObject>(new CDataObject(x));
+			}
 			else
 				break;
 		}
@@ -503,9 +383,11 @@ extern "C"
 void do_id_quote(void) { sf_push('"'); do_parse(); int len = sf_pop(); parseStack.push(QSharedPointer<CIdentifier>(new CIdentifier((QByteArray((const char *) sf_pop(), len))))); }
 void do_to_long(void) { if (!parseStack.size() || parseStack.top()->tag() != CStackNode::DATA_TYPE) parseStack.push(QSharedPointer<CDataType>(new CDataType)); auto t = parseStack.top()->asDataType(); t->isLong = true; t->name += "long "; }
 void do_to_int(void) { if (!parseStack.size() || parseStack.top()->tag() != CStackNode::DATA_TYPE) parseStack.push(QSharedPointer<CDataType>(new CDataType)); auto t = parseStack.top()->asDataType(); t->isInt = true; t->name += "int "; }
+void do_to_void(void) { if (!parseStack.size() || parseStack.top()->tag() != CStackNode::DATA_TYPE) parseStack.push(QSharedPointer<CDataType>(new CDataType)); auto t = parseStack.top()->asDataType(); t->isVoid = true; t->name += "void "; }
 void do_define_variables(void)
 {
-auto d = Util::reap_data_objects();
+	Util::dump();
+	auto d = Util::reap_data_objects();
 	if (!parseStack.empty())
 		Util::panic();
 	for (auto x : d)
@@ -526,36 +408,6 @@ void do_declaration_end(void)
 }
 void do_to_struct(void)
 {
-	/* test cases:
-id" s1" >struct declaration-end
-struct s1;
-
-aggregate{ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end id" s2" >struct }aggregate-end >struct declaration-end
-struct { struct s2 { int x; }; };
-
-id" str" aggregate{ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end id" s3" >struct }aggregate-end >struct define-variables declaration-end
-struct { struct s3 { int x; }; } str;
-
-aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end id" s1" >struct declaration-end
-struct s1 { int x; };
-
-id" s" id" s1" >struct define-variables declaration-end
-struct s1 s;
-
-aggregate{ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct declaration-end
-struct { struct { int x; }; };
-
-id" s1" aggregate{ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end >struct }aggregate-end >struct define-variables declaration-end
-struct { struct { int x; }; } s1;
-
-aggregate{ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end >struct }aggregate-end id" s4" >struct declaration-end
-struct s4 { struct { int x; }; };
-
-id" s2" aggregate{ aggregate{ >>int struct-declarator-list{ id" x" }struct-declarator-list-end }aggregate-end id" s6" >struct }aggregate-end id" s5" >struct define-variables declaration-end
-struct s5 { struct s6 { int x; }; } s2;
-	  */
-
-/*struct { struct s2 { int x; }; };*/
 auto & t = Util::top().operator *();
 
 	if (t.asIdentifier())
@@ -675,20 +527,63 @@ void do_array_end(void)
 void do_to_function_parameter_type_list_begin(void)
 {
 	Util::dump();
-	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)));
+	parseStack.push(QSharedPointer<CStackNode>(new CDataType(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)));
+}
+
+void do_to_parameter_list(void)
+{
+	auto p = Util::pop();
+	auto l = Util::top();
+	if (l->tag() != CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)
+		Util::panic();
+	l->asDataType()->functionParameters << p;
+}
+
+void do_to_id_list(void)
+{
+	auto id = Util::pop();
+	auto l = Util::top();
+	if (l->tag() != CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN)
+		Util::panic();
+	CDataObject d;
+	d.name = id->asIdentifier()->name;
+	l->asDataType()->functionParameters << d;
 }
 
 void do_to_abstract_parameter_declaration(void)
 {
-	Util::dump();
-	Util::panic();
+	Util::fold_to_data_object();
+}
+void do_to_parameter_declaration(void)
+{
+	Util::fold_to_data_object();
+	auto d = Util::pop();
+	auto id = Util::pop();
+	d->asDataobject()->name = id->asIdentifier()->name;
+	parseStack.push(d);
 }
 
-void do_to_function_parameter_type_list_end(void)
+void do_to_parameter_declaration_specifiers(void)
 {
-	Util::dump();
-	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_END)));
+	Util::fold_to_data_object();
 }
+
+void do_function_parameter_type_list_end(void)
+{
+	auto l = Util::top();
+	if (l->tag() != CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)
+		Util::panic();
+	l->setTag(CStackNode::FUNCTION_PARAMETER_TYPE_LIST);
+	l->asDataType()->isFunctionParameterList = true;
+}
+
+void do_function_id_list_end(void)
+{
+	Util::top()->setTag(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN);
+	do_function_parameter_type_list_end();
+	Util::top()->asDataType()->isFunctionParameterIdList = true;
+}
+
 
 void do_to_empty_array(void)
 {
@@ -700,24 +595,9 @@ void do_to_abstract_declarator_array(void)
 	parseStack.push(QSharedPointer<CStackNode>(new CArrayModifier(0)));
 }
 
-void do_to_abstract_declarator_function_id_list_begin(void)
-{
-	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN)));
-}
-
-void do_abstract_declarator_function_id_list_end(void)
-{
-	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END)));
-}
-
 void do_to_function_id_list_begin(void)
 {
-	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_BEGIN)));
-}
-
-void do_function_id_list_end(void)
-{
-	parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::ABSTRACT_DECLARATOR_FUNCTION_ID_LIST_END)));
+	parseStack.push(QSharedPointer<CStackNode>(new CDataType(CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN)));
 }
 
 void empty(void){}
