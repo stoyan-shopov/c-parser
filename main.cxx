@@ -193,7 +193,6 @@ struct CDataObject : public CStackNode
 {
 	QString					name;
 	QSharedPointer<CStackNode>		type;
-	QVector<QSharedPointer<CStackNode>>	typeModifiers;
 	CDataObject(void) : CStackNode(DATA_OBJECT) {}
 	CDataObject(QSharedPointer<CStackNode> type) : CStackNode(DATA_OBJECT) { this->type = type; }
 	CDataObject(const QString & name, QSharedPointer<CStackNode> type) : CStackNode(DATA_OBJECT) { this->type = type; this->name = name; }
@@ -227,6 +226,7 @@ struct CDataType : CStackNode
 	/* data details for 'struct' and 'union' aggregate types */
 	QVector<CDataObject>			members;
 	QString					name;
+	QVector<QSharedPointer<CStackNode>>	typeModifiers;
 };
 
 static QVector<QSharedPointer<CStackNode>> dataTypes;
@@ -305,7 +305,7 @@ public:
 				for (auto i : d->members)
 				{
 					QString modifiers;
-					for (auto m : i.typeModifiers)
+					if (!i.type.isNull()) for (auto m : i.type->asDataType()->typeModifiers)
 					{
 						if (auto t = m->asArray())
 							modifiers += "array[] ";
@@ -329,28 +329,28 @@ public:
 	}
 	static void dumpTypes(void) { qDebug() << "data types\n"; for (auto & t : structTags) dump(t.operator *()); }
 	static void dumpVariables(void) { qDebug() << "file scope variables\n"; for (auto & v : fileScopeVariables) qDebug() << v.name; }
-	static void fold_to_data_object(void)
+	static void fold_data_type(void)
 	{
 		/* inspects the stack, if the top of the stack contains a data type, and optionally any modifiers (e.g., pointers, arrays)
-		 * below it, assembles them in an unnamed data object that replaces those nodes on the stack */
+		 * below it, assembles them in a cumulative data type that replaces those nodes on the stack */
 		if (!top()->asDataType())
 			panic();
-		QSharedPointer<CDataObject> d(new CDataObject(pop()));
+		auto t = pop();
 		while (!parseStack.empty())
 		{
 			auto x = top();
 			if (x->asArray() || x->asPointer())
-				d->asDataobject()->typeModifiers.push_front(pop());
+				t->asDataType()->typeModifiers.push_front(pop());
 			else if (x->tag() == CStackNode::FUNCTION_PARAMETER_TYPE_LIST)
 			{
 				x = pop();
-				x->asDataType()->functionReturnType = d->type;
-				d = QSharedPointer<CDataObject>(new CDataObject(x));
+				x->asDataType()->functionReturnType = t;
+				t = x;
 			}
 			else
 				break;
 		}
-		parseStack.push(d);
+		parseStack.push(t);
 	}
 	static QVector<CDataObject> reap_data_objects(void)
 	{
@@ -361,12 +361,13 @@ public:
 		do
 		{
 			parseStack.push(t);
-			fold_to_data_object();
-			auto x = * pop()->asDataobject();
+			dump();
+			fold_data_type();
+			dump();
+			auto x = pop();
 			if (!top()->asIdentifier())
 				panic();
-			x.name = pop()->asIdentifier()->name;
-			d.push_front(x);
+			d.push_front(CDataObject(pop()->asIdentifier()->name, x));
 		}
 		while (!parseStack.empty()
 			&& top()->tag() != CStackNode::AGGREGATE_BEGIN
@@ -536,7 +537,7 @@ void do_to_parameter_list(void)
 	auto l = Util::top();
 	if (l->tag() != CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN)
 		Util::panic();
-	l->asDataType()->functionParameters << p;
+	l->asDataType()->functionParameters << * p->asDataobject();
 }
 
 void do_to_id_list(void)
@@ -552,20 +553,21 @@ void do_to_id_list(void)
 
 void do_to_abstract_parameter_declaration(void)
 {
-	Util::fold_to_data_object();
+	Util::fold_data_type();
+	parseStack.push(QSharedPointer<CStackNode>(new CDataObject(Util::pop())));
 }
 void do_to_parameter_declaration(void)
 {
-	Util::fold_to_data_object();
-	auto d = Util::pop();
+	Util::fold_data_type();
+	auto t = Util::pop();
 	auto id = Util::pop();
-	d->asDataobject()->name = id->asIdentifier()->name;
-	parseStack.push(d);
+	parseStack.push(QSharedPointer<CStackNode>(new CDataObject(id->asIdentifier()->name, t)));
 }
 
 void do_to_parameter_declaration_specifiers(void)
 {
-	Util::fold_to_data_object();
+	Util::fold_data_type();
+	parseStack.push(QSharedPointer<CStackNode>(new CDataObject(Util::pop())));
 }
 
 void do_function_parameter_type_list_end(void)
