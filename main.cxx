@@ -59,6 +59,10 @@ id" a" >pointer >array[] >pointer id" b" id" c" >>int define-variables declarati
 
 static const char * declarations =
 #if 1
+
+
+"id\" bsd_signal\" >function-param-type-list{ id\" sig\" >>int >parameter-declaration >parameter-list id\" func\" >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list }function-param-type-list-end >>void >parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list }function-param-type-list-end >>void define-variables declaration-end "
+
 /*
 struct str
 {
@@ -75,7 +79,7 @@ struct str
 	};
 } xxx;
 */
-"id\" xxx\" aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct define-variables declaration-end"
+"id\" xxx\" aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ 10 }array-end >pointer >array{ 20 }array-end id\" a\" >pointer id\" b\" >array{ 10 }array-end id\" c\" >array{ 10 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct define-variables declaration-end"
 " "
 #endif
 
@@ -184,7 +188,7 @@ struct CPointerModifier : public CStackNode
 };
 struct CArrayModifier : public CStackNode
 {
-	unsigned dimensionSize;
+	unsigned dimensionSize = 0;
 	virtual struct CArrayModifier * asArray(void) { return this; }
 	CArrayModifier(void) : CStackNode(ARRAY_MODIFIER) {}
 	CArrayModifier(unsigned dimensionSize) : CStackNode(ARRAY_MODIFIER) { this->dimensionSize = dimensionSize; }
@@ -406,7 +410,9 @@ public:
 			for (i = 0; i < d->typeModifiers.size(); i ++)
 			{
 				if (d->typeModifiers[i]->asArray())
-					st += "[]";
+				{
+					st += QString("[%1]").arg(d->typeModifiers[i]->asArray()->dimensionSize);
+				}
 				else if (d->typeModifiers[i]->asPointer())
 				{
 					st.prepend("*");
