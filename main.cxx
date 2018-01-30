@@ -348,7 +348,7 @@ public:
 		 * below it, assembles them in a cumulative data type that replaces those nodes on the stack */
 		if (!top()->asDataType())
 			panic();
-		auto t = pop();
+		auto t = QSharedPointer<CStackNode>(new CDataType(* pop()->asDataType()));
 		while (!parseStack.empty())
 		{
 			auto x = top();
