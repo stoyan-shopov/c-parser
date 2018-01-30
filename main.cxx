@@ -414,7 +414,21 @@ public:
 				return declaration_string(st + params, * d->functionReturnType);
 			}
 			else if (d->isStruct)
-				return QString("struct ") + d->name + "{...}" + st;
+			{
+				QString r("struct ");
+				if (d->name.size())
+					r += d->name + " ";
+				if (d->members.size())
+				{
+					r += "{ ";
+					for (auto & m : d->members)
+					{
+						r += declaration_string(QString(), m) + "; ";
+					}
+					r += "} ";
+				}
+				return r + st;
+			}
 			else if (d->isInt)
 				return QString("int ") + st;
 			else if (d->isLong)
