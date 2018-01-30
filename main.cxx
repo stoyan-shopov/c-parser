@@ -374,6 +374,42 @@ public:
 				);
 		return d;
 	}
+	static QString declaration_string(QString s, CStackNode & n)
+	{
+		if (n.asDataobject())
+		{
+			if (n.asDataobject()->type.isNull())
+				return QString("void ") + n.asDataobject()->name;
+			else
+				return declaration_string(n.asDataobject()->name, * n.asDataobject()->type);
+		}
+		else if (n.asDataType())
+		{
+			QString st = s;
+			auto d = n.asDataType();
+			if (d->isFunctionParameterList)
+			{
+				QString params = "(";
+				for (auto & p : d->functionParameters)
+					params += declaration_string(QString(), p) + ",";
+				/* remove last comma */
+				params.remove(params.length() - 1, 1);
+				params += ")";
+				return declaration_string(st + params, * d->functionReturnType);
+			}
+			else if (d->isStruct)
+				return QString("struct ") + d->name + "{...}";
+			else if (d->isInt)
+				return QString("int ") + st;
+			else if (d->isLong)
+				return QString("long ") + st;
+			else if (d->isVoid)
+				return QString("void ") + st;
+			else
+				panic();
+		}
+		panic();
+	}
 };
 
 extern "C"
@@ -392,10 +428,13 @@ void do_define_variables(void)
 	if (!parseStack.empty())
 		Util::panic();
 	for (auto x : d)
+	{
+		qDebug() << "declaration:\n" << Util::declaration_string(QString(), x);
 		if (fileScopeVariables.contains(x.name))
 			qDebug() << "ERROR: file scope variable '" + x.name + "' redefined";
 		else
 			fileScopeVariables[x.name] = x;
+	}
 }
 void do_declaration_end(void)
 {
@@ -581,6 +620,8 @@ void do_function_parameter_type_list_end(void)
 
 void do_function_id_list_end(void)
 {
+	if (Util::top()->tag() != CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN)
+		Util::panic();
 	Util::top()->setTag(CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN);
 	do_function_parameter_type_list_end();
 	Util::top()->asDataType()->isFunctionParameterIdList = true;
