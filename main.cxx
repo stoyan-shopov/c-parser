@@ -387,18 +387,34 @@ public:
 		{
 			QString st = s;
 			auto d = n.asDataType();
+			int i;
+			for (i = 0; i < d->typeModifiers.size(); i ++)
+			{
+				if (d->typeModifiers[i]->asArray())
+					st += "[]";
+				else if (d->typeModifiers[i]->asPointer())
+				{
+					st.prepend("*");
+					if (i != d->typeModifiers.size() - 1 && d->typeModifiers[i + 1]->asArray())
+						st = QString("(") + st + ")";
+					else if (i == d->typeModifiers.size() - 1 && d->isFunctionParameterList)
+						st = QString("(") + st + ")";
+				}
+				else
+					panic();
+			}
 			if (d->isFunctionParameterList)
 			{
 				QString params = "(";
 				for (auto & p : d->functionParameters)
-					params += declaration_string(QString(), p) + ",";
+					params += declaration_string(QString(), p) + ", ";
 				/* remove last comma */
-				params.remove(params.length() - 1, 1);
+				params.remove(params.length() - 2, 2);
 				params += ")";
 				return declaration_string(st + params, * d->functionReturnType);
 			}
 			else if (d->isStruct)
-				return QString("struct ") + d->name + "{...}";
+				return QString("struct ") + d->name + "{...}" + st;
 			else if (d->isInt)
 				return QString("int ") + st;
 			else if (d->isLong)
