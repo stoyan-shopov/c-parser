@@ -58,17 +58,24 @@ id" a" >pointer >array[] >pointer id" b" id" c" >>int define-variables declarati
 
 
 static const char * declarations =
-#if 0
+#if 1
 /*
-struct s { struct {int x;};};
-
 struct str
 {
-	struct s *(*(* p)[10][10])[12], z;
-	struct { int x, y, z; } **(*x)[10], d;
-};*/
-
-"aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
+	struct
+	{
+		int r, (*(***x)[10])[20], * a, b[10], *c[10], z;
+	};
+	struct
+	{
+		struct
+		{
+			int y;
+		};
+	};
+} xxx;
+*/
+"id\" xxx\" aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct define-variables declaration-end"
 " "
 #endif
 
@@ -133,6 +140,7 @@ struct CStackNode
 		FUNCTION_PARAMETER_TYPE_LIST_BEGIN,
 		FUNCTION_PARAMETER_TYPE_LIST,
 		FUNCTION_PARAMETER_ID_LIST_BEGIN,
+		FUNCTION,
 		DATA_OBJECT,
 		CSTACK_TAG_COUNT,
 	};
@@ -165,6 +173,7 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST_BEGIN]	=	"function parameter type list start",
 	[CStackNode::FUNCTION_PARAMETER_TYPE_LIST]		=	"function parameter type list",
 	[CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN]		=	"function parameter id list start",
+	[CStackNode::FUNCTION]		=				"function",
 	[CStackNode::DATA_OBJECT]	=				"data object",
 };
 
@@ -213,9 +222,13 @@ struct CDataType : CStackNode
 			bool	isLong		: 1;
 			bool	isStruct	: 1;
 			bool	isArray		: 1;
-			bool	isFunction	: 1;
-			bool	isFunctionParameterList		: 1;
-			bool	isFunctionParameterIdList	: 1;
+			struct
+			{
+				/*! \todo	these field are messy, they are *NOT* mutually exclusive; maybe rework their handling */
+				bool	isFunction			: 1;
+				bool	isFunctionParameterList		: 1;
+				bool	isFunctionParameterIdList	: 1;
+			};
 		};
 		unsigned typeSpecifiers;
 	};
@@ -345,6 +358,8 @@ public:
 			{
 				x = pop();
 				x->asDataType()->functionReturnType = t;
+				x->asDataType()->setTag(CStackNode::FUNCTION);
+				x->asDataType()->isFunction = true;
 				t = x;
 			}
 			else
@@ -397,13 +412,13 @@ public:
 					st.prepend("*");
 					if (i != d->typeModifiers.size() - 1 && d->typeModifiers[i + 1]->asArray())
 						st = QString("(") + st + ")";
-					else if (i == d->typeModifiers.size() - 1 && d->isFunctionParameterList)
+					else if (i == d->typeModifiers.size() - 1 && d->isFunction)
 						st = QString("(") + st + ")";
 				}
 				else
 					panic();
 			}
-			if (d->isFunctionParameterList)
+			if (d->isFunction)
 			{
 				QString params = "(";
 				for (auto & p : d->functionParameters)
