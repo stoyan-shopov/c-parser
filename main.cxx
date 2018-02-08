@@ -146,6 +146,8 @@ struct CStackNode
 		FUNCTION_PARAMETER_ID_LIST_BEGIN,
 		FUNCTION,
 		DATA_OBJECT,
+		DECLARATION_WITHOUT_DECLARATOR_LIST,
+		DECLARATION_WITH_DECLARATOR_LIST,
 		CSTACK_TAG_COUNT,
 	};
 private:
@@ -179,6 +181,8 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::FUNCTION_PARAMETER_ID_LIST_BEGIN]		=	"function parameter id list start",
 	[CStackNode::FUNCTION]		=				"function",
 	[CStackNode::DATA_OBJECT]	=				"data object",
+	[CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST]	=	"declaration without declarator list",
+	[CStackNode::DECLARATION_WITH_DECLARATOR_LIST]	=		"declaration with declarator list",
 };
 
 struct CPointerModifier : public CStackNode
@@ -489,14 +493,17 @@ void do_define_variables(void)
 }
 void do_declaration_end(void)
 {
-	if (parseStack.isEmpty())
-		return;
 	auto t = Util::pop();
-	if (!parseStack.isEmpty())
-		Util::panic();
 	if (!t->asDataType())
 		Util::panic("top of stack not a data type");
+	t = Util::pop();
+	if ((t->tag() != CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST && t->tag() != CStackNode::DECLARATION_WITH_DECLARATOR_LIST)
+			|| !parseStack.empty())
+		Util::panic("bad declaration");
 }
+
+void do_declaration_without_declarator_list_begin(void) { parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST))); }
+void do_declaration_with_declarator_list_begin(void) { parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::DECLARATION_WITH_DECLARATOR_LIST))); }
 void do_to_struct(void)
 {
 auto & t = Util::top().operator *();
