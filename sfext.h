@@ -34,6 +34,7 @@ void do_to_parameter_declaration_specifiers(void);
 void do_to_id_list(void);
 void do_declaration_without_declarator_list_begin(void);
 void do_declaration_with_declarator_list_begin(void);
+void do_compound_statement_begin(void);
 
 void empty(void);
 

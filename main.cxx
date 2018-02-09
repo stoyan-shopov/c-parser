@@ -168,6 +168,8 @@ struct CStatement : CStackNode
 
 	CStatement(void) : CStackNode(DATA_TYPE) { }
 	CStatement(enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { }
+	/* compound statement nested statements */
+	QVector<CStatement>	statements;
 };
 
 static QVector<QSharedPointer<CStackNode>> dataTypes;
@@ -430,6 +432,12 @@ void do_declaration_end(void)
 
 void do_declaration_without_declarator_list_begin(void) { parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST))); }
 void do_declaration_with_declarator_list_begin(void) { parseStack.push(QSharedPointer<CStackNode>(new CStackNode(CStackNode::DECLARATION_WITH_DECLARATOR_LIST))); }
+
+void do_compound_statement_begin(void)
+{
+	parseStack.push(QSharedPointer<CStackNode>(new CStatement(CStackNode::COMPOUND_STATEMENT)));
+}
+
 void do_to_struct(void)
 {
 auto & t = Util::top().operator *();

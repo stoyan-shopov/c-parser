@@ -39,6 +39,7 @@ static const struct word custom_dict[] = {
 	MKWORD(custom_dict,		__COUNTER__,	">parameter-list",	do_to_parameter_list),
 	MKWORD(custom_dict,		__COUNTER__,	">parameter-declaration-specifiers",	do_to_parameter_declaration_specifiers),
 	MKWORD(custom_dict,		__COUNTER__,	">id-list",	do_to_id_list),
+	MKWORD(custom_dict,		__COUNTER__,	"compound-statement{",	do_compound_statement_begin),
 
 }, * custom_dict_start = custom_dict + __COUNTER__;
 
