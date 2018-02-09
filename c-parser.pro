@@ -18,7 +18,8 @@ SOURCES += main.cxx \
     sforth/sf-opt-prog-tools.c \
     sforth/sf-opt-string.c \
     sforth/sf-opt-sample.c \
-    sfext.c
+    sfext.c \
+    sfext-expressions.c
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

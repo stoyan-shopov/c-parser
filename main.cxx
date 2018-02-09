@@ -7,128 +7,33 @@
 
 #include <string>
 
-#if 0
-
-/*
-
-long long long
-long long long
-long long long;
->>long >>long >>long >>long >>long >>long >>long >>long >>long declaration-end
-
-long int short signed struct x a;
-id" a" id" x" >struct >>signed >>short >>int >>long define-variables declaration-end
-
-int x;
-id" x" >>int define-variables declaration-end
-
-int x, y, z;
-id" x" id" y" id" z" >>int define-variables declaration-end
-
-
-int ** x;
-int ** y[];
-int (** z)[];
-int *(* a)[], b, c;
-
-
-struct str
-{
-	struct s *(*(* p)[10][10])[12], z;
-	struct { int x, y, z; } **(*x)[10], d;
-};
-
-struct str1
-{
-	struct s *(*(* p)[10][10])[12], z;
-	struct { int x, y, z; } **(*x)[10], d;
-} ***(**p[5])[10];
-
-
-id" x" >pointer >pointer >>int define-variables declaration-end
-id" y" >array[] >pointer >pointer >>int define-variables declaration-end
-id" z" >pointer >pointer >array[] >>int define-variables declaration-end
-id" a" >pointer >array[] >pointer id" b" id" c" >>int define-variables declaration-end
-
-*/
-
-#endif
+#include "sfext.h"
 
 #define ENABLE_TEST_CASES	0
 
 
 static const char * declarations =
-#if 1
-
-
-"id\" bsd_signal\" >function-param-type-list{ id\" sig\" >>int >parameter-declaration >parameter-list id\" func\" >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list }function-param-type-list-end >>void >parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list }function-param-type-list-end >>void define-variables declaration-end "
-
-/*
-struct str
-{
-	struct
-	{
-		int r, (*(***x)[10])[20], * a, b[10], *c[10], z;
-	};
-	struct
-	{
-		struct
-		{
-			int y;
-		};
-	};
-} xxx;
-*/
-"id\" xxx\" aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ 10 }array-end >pointer >array{ 20 }array-end id\" a\" >pointer id\" b\" >array{ 10 }array-end id\" c\" >array{ 10 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct define-variables declaration-end"
+"( file-level declaration detected:) declaration-with-declarator-list{ id\" x\" >>int define-variables }declaration-with-declarator-list"
 " "
-#endif
-
-#if 1
-/* int (*(*fpfi1(struct { int x; } *, void * (**asd[])(int, int *), struct x { int y; }*[], struct z { int y; }(*xxx)[]))(struct foo *))(a,b,c); */
-"id\" fpfi1\" >function-param-type-list{ >pointer aggregate{ id\" x\" >>int >struct-declaration }aggregate-end >struct >abstract-parameter-declaration >parameter-list id\" asd\" >array[] >pointer >pointer >function-param-type-list{ >>int >parameter-declaration-specifiers >parameter-list >pointer >>int >abstract-parameter-declaration >parameter-list }function-param-type-list-end >pointer >>void >parameter-declaration >parameter-list >abstract-declarator-array[] >pointer aggregate{ id\" y\" >>int >struct-declaration }aggregate-end id\" x\" >struct >abstract-parameter-declaration >parameter-list id\" xxx\" >pointer >array[] aggregate{ id\" y\" >>int >struct-declaration }aggregate-end id\" z\" >struct >parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-param-type-list{ >pointer id\" foo\" >struct >abstract-parameter-declaration >parameter-list }function-param-type-list-end >pointer >function-id-list{ id\" a\" >id-list id\" b\" >id-list id\" c\" >id-list }function-id-list-end >>int define-variables declaration-end"
-" "
-#endif
-
-#if 0
-/*
-struct str
-{
-	struct
-	{
-		int r, (*(***x)[10])[20], * a, b[10], *c[10], z;
-	};
-	struct
-	{
-		struct
-		{
-			int y;
-		};
-	};
-};
-*/
-"aggregate{ aggregate{ id\" r\" id\" x\" >pointer >pointer >pointer >array{ -2 }array-end >pointer >array{ -2 }array-end id\" a\" >pointer id\" b\" >array{ -2 }array-end id\" c\" >array{ -2 }array-end >pointer id\" z\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate aggregate{ aggregate{ id\" y\" >>int >struct-declaration }aggregate-end >struct >anonymous-aggregate }aggregate-end >struct >anonymous-aggregate }aggregate-end id\" str\" >struct declaration-end"
-" "		
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct s1; */
-"id\" s1\" >struct declaration-end"
-" "
-#endif
-
-#if ENABLE_TEST_CASES
-/* struct s1 s; */
-"id\" s\" id\" s1\" >struct define-variables declaration-end"
-" "
-#endif
-
+"( function definition detected:) compound-statement{ block-item{ expression{ lval{ id\" x\" } postfix++ }expression }block-item }compound-statement id\" main\" >function-param-type-list{ >>void >parameter-declaration-specifiers >parameter-list }function-param-type-list-end >>void define-funcion"
 ;
+
+struct
+{
+	/* this is the original dictionary, after performing an sf_reset */
+	word	* clean;
+	word	* base;
+	word	* expressions;
+	static void switch_to(word * dictionary) { sf_push((cell) dictionary), sf_eval("latest !"); }
+	static word * latest(void) { sf_eval("latest @"); return (word *) sf_pop(); }
+} dictionaries;
 
 struct CIdentifier;
 struct CDataType;
 struct CPointerModifier;
 struct CArrayModifier;
 struct CDataObject;
+struct CStatement;
 
 struct CStackNode
 {
@@ -148,6 +53,9 @@ struct CStackNode
 		DATA_OBJECT,
 		DECLARATION_WITHOUT_DECLARATOR_LIST,
 		DECLARATION_WITH_DECLARATOR_LIST,
+		STATEMENT,
+		COMPOUND_STATEMENT,
+		EXPRESSION_STATEMENT,
 		CSTACK_TAG_COUNT,
 	};
 private:
@@ -159,6 +67,7 @@ public:
 	virtual struct CPointerModifier * asPointer(void) { return 0; }
 	virtual struct CArrayModifier * asArray(void) { return 0; }
 	virtual struct CDataObject * asDataobject(void) { return 0; }
+	virtual struct CStatement * asStatement(void) { return 0; }
 
 	void setTag(enum CSTACK_NODE_ENUM tag) { _tag = tag; }
 	enum CSTACK_NODE_ENUM tag(void) { return _tag; }
@@ -183,6 +92,9 @@ const char * CStackNode::tagNames[CSTACK_TAG_COUNT] =
 	[CStackNode::DATA_OBJECT]	=				"data object",
 	[CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST]	=	"declaration without declarator list",
 	[CStackNode::DECLARATION_WITH_DECLARATOR_LIST]	=		"declaration with declarator list",
+	[CStackNode::STATEMENT]	=					"statement",
+	[CStackNode::COMPOUND_STATEMENT]	=			"compound statement",
+	[CStackNode::EXPRESSION_STATEMENT]	=			"expression statement",
 };
 
 struct CPointerModifier : public CStackNode
@@ -248,6 +160,14 @@ struct CDataType : CStackNode
 	QVector<CDataObject>			members;
 	QString					name;
 	QVector<QSharedPointer<CStackNode>>	typeModifiers;
+};
+
+struct CStatement : CStackNode
+{
+	virtual CStatement * asStatement(void) { return this; }
+
+	CStatement(void) : CStackNode(DATA_TYPE) { }
+	CStatement(enum CSTACK_NODE_ENUM tag) : CStackNode(tag) { }
 };
 
 static QVector<QSharedPointer<CStackNode>> dataTypes;
@@ -394,6 +314,8 @@ public:
 		}
 		while (!parseStack.empty()
 			&& top()->tag() != CStackNode::AGGREGATE_BEGIN
+			&& top()->tag() != CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST
+			&& top()->tag() != CStackNode::DECLARATION_WITH_DECLARATOR_LIST
 				);
 		return d;
 	}
@@ -480,8 +402,6 @@ void do_define_variables(void)
 {
 	Util::dump();
 	auto d = Util::reap_data_objects();
-	if (!parseStack.empty())
-		Util::panic();
 	for (auto x : d)
 	{
 		qDebug() << "declaration:\n" << Util::declaration_string(QString(), x);
@@ -494,10 +414,16 @@ void do_define_variables(void)
 void do_declaration_end(void)
 {
 	auto t = Util::pop();
+	if (t->tag() == CStackNode::DECLARATION_WITH_DECLARATOR_LIST)
+	{
+		if (!parseStack.empty())
+			Util::panic();
+		return;
+	}
 	if (!t->asDataType())
 		Util::panic("top of stack not a data type");
 	t = Util::pop();
-	if ((t->tag() != CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST && t->tag() != CStackNode::DECLARATION_WITH_DECLARATOR_LIST)
+	if (t->tag() != CStackNode::DECLARATION_WITHOUT_DECLARATOR_LIST
 			|| !parseStack.empty())
 		Util::panic("bad declaration");
 }
@@ -710,6 +636,12 @@ int main(int argc, char *argv[])
 	QCoreApplication a(argc, argv);
 
 	sf_reset();
+	dictionaries.clean = dictionaries.latest();
+	sf_expression_dictionary_init();
+	dictionaries.expressions = dictionaries.latest();
+	dictionaries.switch_to(dictionaries.clean);
+	sf_base_dictionary_init();
+	dictionaries.base = dictionaries.latest();
 
 	sf_eval(".( start of parsing)cr");
 	sf_eval(declarations);

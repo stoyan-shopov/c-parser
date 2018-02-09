@@ -1,5 +1,12 @@
-#ifndef SFEXT_H
-#define SFEXT_H
+#ifndef __SFEXT_H__
+#define __SFEXT_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "engine.h"
+#include "sf-word-wizard.h"
 
 void do_id_quote(void);
 void do_to_long(void);
@@ -28,7 +35,13 @@ void do_to_id_list(void);
 void do_declaration_without_declarator_list_begin(void);
 void do_declaration_with_declarator_list_begin(void);
 
-
 void empty(void);
 
-#endif // SFEXT_H
+void sf_base_dictionary_init(void);
+void sf_expression_dictionary_init(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // __SFEXT_H__

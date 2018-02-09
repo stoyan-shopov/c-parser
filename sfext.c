@@ -1,6 +1,3 @@
-#include "engine.h"
-#include "sf-word-wizard.h"
-
 #include "sfext.h"
 
 static void do_squared(void) { cell x = sf_pop(); sf_push(x * x); }
@@ -45,8 +42,7 @@ static const struct word custom_dict[] = {
 
 }, * custom_dict_start = custom_dict + __COUNTER__;
 
-static void sf_opt_sample_init(void) __attribute__((constructor));
-static void sf_opt_sample_init(void)
+void sf_base_dictionary_init(void)
 {
 	sf_merge_custom_dictionary(dict_base_dummy_word, custom_dict_start);
 }
